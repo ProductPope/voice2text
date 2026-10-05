@@ -37,12 +37,14 @@ class Engine(Protocol):
     def stop(self) -> str: ...  # returns the unsent draft
     def confirm(self) -> Event: ...
     def cancel_pending(self) -> None: ...
+    def learn_correction(self, corrected: str) -> list[tuple[str, str]]: ...
 
 
 class UI(Protocol):
     def show(self, state: State, draft: str = "", detail: str = "") -> None: ...
     def preview(self, text: str) -> None: ...
     def notify(self, message: str) -> None: ...
+    def ask_correction(self, text: str) -> None: ...  # calls Controller.apply_correction later
 
 
 Schedule = Callable[[float, Callable[[], None]], Callable[[], None]]  # returns a cancel function
@@ -97,6 +99,20 @@ class Controller:
                 return spec
             problems.append(f"{spec} jest zajęty przez inny program")
         self.ui.notify("Nie udało się ustawić żadnego skrótu – użyj menu w zasobniku.")
+        return None
+
+    def register_correct_hotkey(self) -> str | None:
+        spec = self.cfg.get("correct_hotkey", "")
+        if not spec:
+            return None
+        try:
+            hk = hotkeys.parse(spec)
+        except hotkeys.HotkeyError as exc:
+            self.ui.notify(f"Skrót „popraw ostatni”: {exc}")
+            return None
+        if self.platform.register_hotkey(hk, self.correct):
+            return spec
+        self.ui.notify(f"Skrót „popraw ostatni” ({spec}) jest zajęty – użyj menu w zasobniku.")
         return None
 
     def on_ready(self, description: str) -> None:
@@ -196,6 +212,30 @@ class Controller:
         if delivery.reason:
             self.ui.notify(delivery.reason)
         return delivery
+
+    def correct(self) -> None:
+        """Ctrl+Alt+K: fix the last sent text so dictAItor learns from it."""
+        if self.state in (State.LISTENING, State.PENDING):
+            self.ui.notify("Najpierw dokończ albo przerwij dyktowanie.")
+        elif not self.last_sent:
+            self.ui.notify("Nic jeszcze nie zostało wysłane w tej sesji.")
+        else:
+            self.ui.ask_correction(self.last_sent)
+
+    def apply_correction(self, corrected: str, copy: bool = False) -> list[tuple[str, str]]:
+        corrected = corrected.strip()
+        if not corrected or corrected == self.last_sent:
+            return []
+        learned = self.engine.learn_correction(corrected)
+        self.last_sent = corrected
+        if copy:
+            self.platform.set_clipboard(corrected)
+        if learned:
+            rules = ", ".join(f"„{a}” → „{b}”" for a, b in learned)
+            self.ui.notify(f"Zapamiętane: {rules}. Po kolejnych takich poprawkach będę to robić sam.")
+        else:
+            self.ui.notify("Zapamiętane (styl i pauzy)." + (" Poprawiony tekst jest w schowku." if copy else ""))
+        return learned
 
     def copy_last_unsent(self) -> bool:
         if not self.last_unsent:

@@ -4,20 +4,21 @@ from __future__ import annotations
 
 import html
 import os
-import subprocess
 import sys
 import threading
 
 from PySide6.QtCore import QLockFile, QObject, Qt, QTimer, Signal
 from PySide6.QtGui import QAction, QColor, QFont, QGuiApplication, QIcon, QPainter, QPixmap
-from PySide6.QtWidgets import QApplication, QLabel, QMenu, QSystemTrayIcon, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QApplication, QLabel, QMenu, QMessageBox, QSystemTrayIcon, QVBoxLayout, QWidget
 
 from ..audio import chunker_for, microphone_frames
 from ..config import Config, home_dir
 from ..learning import LearnedStore
 from ..pipeline import Pipeline
 from ..session import Event, Session
+from ..phrase import check_phrase
 from .controller import Controller, State
+from .dialogs import CorrectionDialog, PhraseTestDialog, RulesDialog, SettingsDialog, bring_to_front
 from .platform import FakePlatform, get_platform
 
 COLORS = {
@@ -53,6 +54,8 @@ class Engine(QObject):
     failed = Signal(str)
     event = Signal(object)
     preview = Signal(str)
+    heard = Signal(str)  # phrase test: one utterance transcribed
+    capture_done = Signal()
 
     def __init__(self, config: Config):
         super().__init__()
@@ -62,6 +65,7 @@ class Engine(QObject):
         self.transcriber = None
         self._lock = threading.Lock()
         self._listening = threading.Event()
+        self._capture_stop = threading.Event()
         self._thread: threading.Thread | None = None
 
     def load(self) -> None:
@@ -125,6 +129,41 @@ class Engine(QObject):
     def cancel_pending(self) -> None:
         with self._lock:
             self.session.cancel_pending()
+
+    def learn_correction(self, corrected: str) -> list[tuple[str, str]]:
+        with self._lock:
+            learned = self.session.learn_correction(corrected)
+        if learned and self.transcriber:
+            # New names become hotwords right away.
+            vocab = self.store.vocabulary(self.config["learning"]["min_occurrences"])
+            self.transcriber.set_vocabulary(list(self.config["rules"]["vocabulary"]) + vocab)
+        return learned
+
+    def capture(self, utterances: int) -> None:
+        """Phrase test: transcribe the next few utterances, nothing goes to the session."""
+
+        def run():
+            chunker = chunker_for(self.config)
+            got = 0
+            try:
+                for frame in microphone_frames():
+                    chunk = chunker.push(frame)
+                    if chunk is not None:
+                        text = " ".join(w.text for w in self.transcriber.transcribe(chunk.audio, chunk.offset)).strip()
+                        if text:
+                            self.heard.emit(text)
+                            got += 1
+                    if got >= utterances or self._capture_stop.is_set():
+                        break
+            except Exception as exc:
+                self.failed.emit(f"Problem z mikrofonem: {exc}")
+            self.capture_done.emit()
+
+        self._capture_stop.clear()
+        threading.Thread(target=run, daemon=True, name="dictaitor-phrase-test").start()
+
+    def stop_capture(self) -> None:
+        self._capture_stop.set()
 
 
 class Overlay(QWidget):
@@ -212,6 +251,12 @@ class QtUI:
     def notify(self, message: str) -> None:
         self.tray.showMessage("dictAItor", message, QSystemTrayIcon.Information, 5000)
 
+    def ask_correction(self, text: str) -> None:
+        self.dialog = CorrectionDialog(text, self.on_correction)
+        bring_to_front(self.dialog)
+
+    on_correction = None  # set to Controller.apply_correction in main()
+
 
 class _Bridge(QObject):
     """Hotkeys fire on a Windows thread; this hops them onto the Qt thread."""
@@ -232,13 +277,6 @@ class QtClipboardPlatform(FakePlatform):
     type_text = paste_text = set_clipboard
 
 
-def open_path(path) -> None:
-    if os.name == "nt":
-        os.startfile(path)  # noqa: S606 - opens with the user's default app
-    else:
-        subprocess.Popen(["xdg-open", str(path)])
-
-
 def main() -> int:
     app = QApplication(sys.argv)
     app.setQuitOnLastWindowClosed(False)
@@ -247,7 +285,7 @@ def main() -> int:
     home = home_dir()
     home.mkdir(parents=True, exist_ok=True)
     lock = QLockFile(str(home / "app.lock"))
-    if not lock.tryLock(100):
+    if not lock.tryLock(5000):  # a restarting instance may still be closing
         print("dictAItor już działa (ikona w zasobniku).")
         return 0
 
@@ -287,30 +325,79 @@ def main() -> int:
     engine.event.connect(controller.on_event)
     engine.preview.connect(controller.on_preview)
 
+    ui.on_correction = controller.apply_correction
+    config_path = home / "config.toml"
+    windows: dict = {}  # keeps open dialogs alive
+
+    def restart():
+        from PySide6.QtCore import QProcess
+
+        lock.unlock()
+        QProcess.startDetached(sys.executable, ["-m", "dictaitor.app"])
+        app.quit()
+
+    def open_rules():
+        windows["rules"] = RulesDialog(engine.store, config)
+        bring_to_front(windows["rules"])
+
+    def test_phrase(phrase: str):
+        if controller.state is not State.IDLE:
+            ui.notify("Test hasła działa, gdy model jest gotowy i nie dyktujesz.")
+            return
+        dialog = PhraseTestDialog(phrase)
+        windows["phrase"] = dialog
+        heard = []
+
+        def on_heard(text):
+            heard.append(text)
+            dialog.add_heard(text)
+
+        def on_done():
+            engine.heard.disconnect(on_heard)
+            engine.capture_done.disconnect(on_done)
+            if heard:
+                g = config["gate"]
+                dialog.show_result(check_phrase(phrase, heard, g["match_threshold"], g["cancel_phrase"]))
+
+        engine.heard.connect(on_heard)
+        engine.capture_done.connect(on_done)
+        dialog.rejected.connect(engine.stop_capture)
+        bring_to_front(dialog)
+        engine.capture(dialog.times)
+
+    def saved():
+        answer = QMessageBox.question(
+            None, "dictAItor", "Zapisano. Uruchomić aplikację ponownie, żeby zmiany zadziałały?"
+        )
+        if answer == QMessageBox.Yes:
+            restart()
+
+    def open_settings():
+        windows["settings"] = SettingsDialog(config, config_path, test_phrase, saved)
+        bring_to_front(windows["settings"])
+
     menu = QMenu()
     dictate = QAction("Dyktuj")
     dictate.triggered.connect(controller.toggle)
+    correct = QAction("Popraw ostatni tekst")
+    correct.triggered.connect(controller.correct)
+    rules = QAction("Czego się nauczyłem…")
+    rules.triggered.connect(open_rules)
     recover = QAction("Skopiuj ostatni niewysłany szkic")
     recover.triggered.connect(
         lambda: ui.notify("Szkic jest w schowku." if controller.copy_last_unsent() else "Brak niewysłanego szkicu.")
     )
-    settings = QAction("Ustawienia (Notatnik)")
-
-    def open_settings():
-        path = home / "config.toml"
-        if not path.exists():
-            from importlib import resources
-
-            path.write_bytes((resources.files("dictaitor") / "config.example.toml").read_bytes())
-        open_path(path)
-
+    settings = QAction("Ustawienia…")
     settings.triggered.connect(open_settings)
+    restart_action = QAction("Uruchom ponownie")
+    restart_action.triggered.connect(restart)
     quit_action = QAction("Zakończ")
     quit_action.triggered.connect(app.quit)
-    for action in (dictate, recover, settings):
+    for action in (dictate, correct, rules, recover):
         menu.addAction(action)
     menu.addSeparator()
-    menu.addAction(quit_action)
+    for action in (settings, restart_action, quit_action):
+        menu.addAction(action)
     tray.setContextMenu(menu)
     tray.activated.connect(lambda reason: reason == QSystemTrayIcon.Trigger and controller.toggle())
     tray.show()
@@ -320,6 +407,9 @@ def main() -> int:
     spec = controller.register_hotkey()
     if spec:
         dictate.setText(f"Dyktuj ({spec.upper()})")
+    correct_spec = controller.register_correct_hotkey()
+    if correct_spec:
+        correct.setText(f"Popraw ostatni tekst ({correct_spec.upper()})")
     ui.show(State.LOADING)
     engine.load()
     return app.exec()

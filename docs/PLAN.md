@@ -172,8 +172,8 @@ Wszystko w `%APPDATA%\dictaitor\` jako czytelne pliki (TOML/JSON), z eksportem/i
 |---|---|---|
 | M0 ✅ | Prototyp rdzenia (CLI): hasło, pauzy, komendy, uczenie | 27 testów, `dictaitor simulate` |
 | M1 ✅ | Rdzeń produkcyjny: Silero VAD, podgląd na żywo, filtr halucynacji, hotwords, autodobór modelu, `dictaitor eval`, refaktor configu (walidacja, `%APPDATA%`) | testy + zestaw ewaluacyjny, 0 fałszywych wysyłek |
-| M2 🟡 | Aplikacja Windows MVP: tray, skrót, okienko szkicu, wpisywanie w zapamiętane okno, ustawienia, test hasła | dyktujesz do Slacka/przeglądarki na co dzień |
-| M3 | Uczenie w UI: „popraw ostatni”, ekran reguł, profile stylu, eksport/import | reguły powstają bez edytowania plików |
+| M2 ✅ | Aplikacja Windows MVP: tray, skrót, okienko szkicu, wpisywanie w zapamiętane okno, ustawienia, test hasła | dyktujesz do Slacka/przeglądarki na co dzień |
+| M3 ✅ | Uczenie w UI: „popraw ostatni”, ekran reguł, profile stylu, eksport/import | reguły powstają bez edytowania plików |
 | M4 | Intencje: lokalny LLM + opcjonalna chmura, strażnik zmian, budżet opóźnień | autopoprawki rozumiane poprawnie w zestawie ewaluacyjnym |
 | M5 | Wydanie 0.9 beta: instalator, podpis, CI, dokumentacja EN/PL, nazwa | instalacja na czystym Windows bez Pythona |
 | M6 | 1.0: poprawki z bety, `winget`, przewodnik dla kontrybutorów | 2–3 tygodnie stabilnego użycia przez testerów |
@@ -227,8 +227,21 @@ Zrobione:
   (skrót + schowek z polskimi znakami); pełny przebieg aplikacji z nagraniem zamiast
   mikrofonu – OK (na Linuksie, ścieżka schowka).
 
-Do zrobienia w M2:
-- **Test ręczny na Windows** (wpisywanie do Notatnika, Slacka, przeglądarki, Windows
-  Terminal z Claude Code; okno administratora; zmiana okna w trakcie).
-- Okno ustawień zamiast Notatnika, test hasła (3× wypowiedz), autostart z Windows.
+Dokończone później w M2: okno ustawień (zapis do `config.toml` z zachowaniem komentarzy),
+test hasła (3× wypowiedz → co usłyszał Whisper + ocena: za krótkie, zbyt częste słowa,
+podobne do hasła anulowania), autostart z Windows (rejestr użytkownika, bez admina),
+„Uruchom ponownie” w menu.
+
+**Wciąż potrzebny test ręczny na Windows** (wpisywanie do Notatnika, Slacka, przeglądarki,
+Windows Terminal z Claude Code; okno administratora; zmiana okna w trakcie).
+
+## 15. Stan M3
+
+- **Ctrl+Alt+K – „popraw ostatni”**: okienko z ostatnio wpisanym tekstem; różnice uczą
+  zamian słów/nazw (aktywne po 2 powtórzeniach), progów pauz (z interpunkcji, którą
+  zostawiłeś) i zapisują parę „szkic → poprawione” jako przykład stylu (do 50, dla M4).
+  Nowo nauczone nazwy od razu trafiają do słownika Whispera.
+- **„Czego się nauczyłem…”**: tabela reguł z licznikami, usuwanie, eksport/import JSON
+  (przeniesienie na inny komputer), progi pauz i liczba przykładów.
+- Profile stylu per aplikacja – przeniesione do M4 (wymagają kroku LLM).
 

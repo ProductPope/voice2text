@@ -53,6 +53,9 @@ class Session:
         self.gate = Gate(config)
         self.confirm = confirm
         self.pending: str | None = None
+        # What was last sent, kept so "correct last" (Ctrl+Alt+K) can learn from it.
+        self.last_sent = ""
+        self.last_boundaries: list = []
         self._new_composer()
 
     def _new_composer(self) -> None:
@@ -99,6 +102,18 @@ class Session:
         """Esc during the countdown: nothing is sent, dictation can continue."""
         self.pending = None
 
+    def learn_correction(self, corrected: str) -> list[tuple[str, str]]:
+        """The user fixed the last sent text afterwards: learn words, pauses and style."""
+        corrected = corrected.strip()
+        if not self.last_sent or not corrected or corrected == self.last_sent:
+            return []
+        learned = self.store.learn_words(self.last_sent, corrected)
+        self.store.learn_pauses(corrected, self.last_boundaries)
+        self.store.add_example(self.last_sent, corrected)
+        self.store.save()
+        self.last_sent, self.last_boundaries = corrected, []  # pauses are learned once
+        return learned
+
     def _send(self) -> Event:
         draft = self.draft()
         if not draft:
@@ -125,5 +140,6 @@ class Session:
             if learned:
                 notes.append("zapamiętano: " + ", ".join(f"{a} → {b}" for a, b in learned))
         notes.insert(0, self.sink(final))
+        self.last_sent, self.last_boundaries = final, boundaries
         self._new_composer()
         return Event(Action.SEND, "", sent=final, info="; ".join(notes))

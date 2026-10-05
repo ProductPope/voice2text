@@ -115,6 +115,26 @@ Dobrze wiedzieć:
   wiadomości w połowie.
 - Zakończenie: prawy przycisk na kółku → **Zakończ**.
 
+**Uczenie się Twoich zasad – Ctrl+Alt+K („popraw ostatni”)**
+
+Jeśli wpisany tekst nie jest taki, jak chciałeś (np. „postgres” zamiast „PostgreSQL”,
+brakujący przecinek, zła kropka po pauzie):
+1. Naciśnij **Ctrl+Alt+K** – otworzy się okienko z ostatnio wpisanym tekstem.
+2. Popraw go tak, jak powinien wyglądać.
+3. Kliknij **Zapamiętaj** (albo **Zapamiętaj i skopiuj**, jeśli chcesz wkleić poprawioną wersję).
+
+dictAItor zapamięta różnice. Tę samą poprawkę słowa po **2 razach** robi już sam,
+a z poprawek interpunkcji uczy się, jak długie są Twoje pauzy „na zastanowienie”,
+a jak długie – na koniec zdania. Listę tego, czego się nauczył (z możliwością usuwania,
+eksportu i importu), znajdziesz w menu kółka: **Czego się nauczyłem…**
+
+**Ustawienia bez Notatnika**
+
+Prawy przycisk na kółku → **Ustawienia…**: hasło (z przyciskiem **Sprawdź hasło…** –
+powiesz je 3 razy, a program pokaże, czy dobrze je słyszy), skróty, czas na Esc,
+sposób wpisywania, model mowy i **uruchamianie razem z Windows**.
+Po zapisaniu program zapyta o ponowne uruchomienie.
+
 ## Krok 6. Zmiana hasła i własnych reguł (opcjonalnie)
 
 Dwuklik **`5-ustawienia.bat`** – otworzy się Notatnik z ustawieniami. Najważniejsze:

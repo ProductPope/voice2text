@@ -145,7 +145,7 @@ a `#nosend` oznacza „nic nie może zostać wysłane” (np. hasło powiedziane
 
 ## Aplikacja w zasobniku (Windows)
 
-`dictaitor app` (albo `windows\6-aplikacja.bat`): `Ctrl+Alt+D` zaczyna dyktowanie, hasło wpisuje tekst
+`dictaitor app` (albo `windows\6-aplikacja.bat`): `Ctrl+Alt+D` zaczyna dyktowanie, `Ctrl+Alt+K` poprawia ostatni tekst (i uczy się z poprawki), hasło wpisuje tekst
 w okno, w którym byłeś, po 0,8 s na rozmyślenie się (Esc). Szczegóły w [docs/START-WINDOWS.md](docs/START-WINDOWS.md).
 
 ## Struktura

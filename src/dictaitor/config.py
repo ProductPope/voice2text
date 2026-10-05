@@ -174,3 +174,42 @@ class Config:
     @classmethod
     def from_dict(cls, override: dict[str, Any]) -> "Config":
         return cls(data=_merge(DEFAULTS, override))
+
+
+def _toml_value(value: Any) -> str:
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    if isinstance(value, (int, float)):
+        return repr(value)
+    if isinstance(value, str):
+        return '"' + value.replace("\\", "\\\\").replace('"', '\\"') + '"'
+    raise TypeError(f"unsupported setting type: {type(value).__name__}")
+
+
+def update_file(path: Path, changes: dict[str, dict[str, Any]]) -> None:
+    """Change simple settings in config.toml in place, keeping the user's comments."""
+    import re
+
+    lines = path.read_text(encoding="utf-8").splitlines() if path.exists() else []
+    for section, values in changes.items():
+        for key, value in values.items():
+            line = f"{key} = {_toml_value(value)}"
+            start = next((i for i, l in enumerate(lines) if l.strip() == f"[{section}]"), None)
+            if start is None:
+                lines += ["", f"[{section}]", line]
+                continue
+            end = next((i for i in range(start + 1, len(lines)) if lines[i].lstrip().startswith("[")), len(lines))
+            key_re = re.compile(rf"^\s*{re.escape(key)}\s*=")
+            for i in range(start + 1, end):
+                if key_re.match(lines[i]):
+                    comment = re.search(r"\s+#.*$", lines[i].split("=", 1)[1])
+                    keep = comment.group(0) if comment and lines[i].count('"') % 2 == 0 else ""
+                    lines[i] = line + keep
+                    break
+            else:
+                insert = end
+                while insert > start + 1 and not lines[insert - 1].strip():
+                    insert -= 1
+                lines.insert(insert, line)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")

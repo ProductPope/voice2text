@@ -55,6 +55,10 @@ class FakeEngine:
     def cancel_pending(self):
         self.cancelled += 1
 
+    def learn_correction(self, corrected):
+        self.corrections = getattr(self, "corrections", []) + [corrected]
+        return [("postgres", "PostgreSQL")] if "PostgreSQL" in corrected else []
+
 
 class FakeUI:
     def __init__(self):
@@ -70,6 +74,9 @@ class FakeUI:
 
     def notify(self, message):
         self.notes.append(message)
+
+    def ask_correction(self, text):
+        self.asked = text
 
 
 class Clock:
@@ -263,3 +270,103 @@ def test_windows_hotkey_register_and_clipboard_roundtrip():
     p.set_clipboard("zażółć gęślą jaźń")
     assert p.get_clipboard() == "zażółć gęślą jaźń"
     assert isinstance(p.foreground_window(), int)
+
+
+def test_correct_last_flow():
+    c, platform, engine, ui, clock = make()
+    c.correct()
+    assert "Nic jeszcze" in ui.notes[-1]
+    c.toggle()
+    say_safe_phrase(c, engine, "Baza to postgres.")
+    clock.fire()
+    c.correct()
+    assert ui.asked == "Baza to postgres."
+    assert c.apply_correction("Baza to PostgreSQL.", copy=True) == [("postgres", "PostgreSQL")]
+    assert platform.clipboard == "Baza to PostgreSQL." and "Zapamiętane" in ui.notes[-1]
+    assert c.apply_correction("Baza to PostgreSQL.") == []  # unchanged: nothing to learn
+
+
+def test_correct_hotkey_registration():
+    c, platform, engine, ui, clock = make()
+    assert c.register_correct_hotkey() == "ctrl+alt+k"
+    platform.press("ctrl+alt+k")
+    assert "Nic jeszcze" in ui.notes[-1]
+    c2, p2, *_ = make(correct_hotkey="ctrl+alt+z")
+    assert c2.register_correct_hotkey() is None
+
+
+# ------------------------------------------------------------- Qt dialogs
+
+
+@pytest.fixture
+def qapp():
+    pytest.importorskip("PySide6")
+    os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+    from PySide6.QtWidgets import QApplication
+
+    return QApplication.instance() or QApplication([])
+
+
+def test_correction_dialog_reports_edit(qapp):
+    from dictaitor.app.dialogs import CorrectionDialog
+
+    got = []
+    d = CorrectionDialog("Baza to postgres.", lambda text, copy: got.append((text, copy)))
+    d.edit.setPlainText("Baza to PostgreSQL.")
+    d.save_copy.click()
+    assert got == [("Baza to PostgreSQL.", True)]
+
+
+def test_settings_dialog_saves_to_config_file(qapp, tmp_path):
+    from dictaitor.app.dialogs import SettingsDialog
+    from dictaitor.config import Config
+
+    path = tmp_path / "config.toml"
+    saved = []
+    d = SettingsDialog(Config(), path, lambda phrase: None, lambda: saved.append(True))
+    d.send_phrase.setText("zatwierdzam bez zmian")
+    d.hotkey.setText("F9")
+    d.abort.setValue(1.2)
+    d.delivery.setCurrentIndex(d.delivery.findData("paste"))
+    d._save()
+    cfg = Config.load(path)
+    assert cfg["gate"]["send_phrase"] == "zatwierdzam bez zmian"
+    assert (cfg["app"]["hotkey"], cfg["app"]["abort_seconds"], cfg["app"]["delivery"]) == ("f9", 1.2, "paste")
+    assert saved == [True]
+
+
+def test_settings_dialog_refuses_altgr_hotkey(qapp, tmp_path, monkeypatch):
+    from dictaitor.app import dialogs
+    from dictaitor.config import Config
+
+    warnings = []
+    monkeypatch.setattr(dialogs.QMessageBox, "warning", lambda *a: warnings.append(a[-1]))
+    d = dialogs.SettingsDialog(Config(), tmp_path / "c.toml", lambda p: None, lambda: None)
+    d.hotkey.setText("ctrl+alt+z")
+    d._save()
+    assert "AltGr" in warnings[0] and not (tmp_path / "c.toml").exists()
+
+
+def test_rules_dialog_lists_and_deletes(qapp):
+    from dictaitor.app.dialogs import RulesDialog
+    from dictaitor.config import Config
+    from dictaitor.learning import LearnedStore
+
+    store = LearnedStore()
+    store.add_replacement("ajfon", "iPhone", weight=2)
+    store.add_replacement("postgres", "PostgreSQL")
+    d = RulesDialog(store, Config())
+    assert d.table.rowCount() == 2 and "aktywne od 2" in d.table.item(1, 2).text()
+    d.table.selectRow(0)
+    d._delete()
+    assert list(store.replacements) == ["postgres"]
+
+
+def test_phrase_test_dialog_shows_verdict(qapp):
+    from dictaitor.app.dialogs import PhraseTestDialog
+    from dictaitor.phrase import check_phrase
+
+    d = PhraseTestDialog("zatwierdzam bez zmian")
+    d.add_heard("zatwierdzam bez zmian")
+    d.show_result(check_phrase("zatwierdzam bez zmian", ["zatwierdzam bez zmian"] * 3, 0.8))
+    assert "dobre" in d.label.text()

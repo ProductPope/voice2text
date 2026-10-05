@@ -23,6 +23,7 @@ from .config import Config
 _FINAL_TOKEN = re.compile(r"([\w'’-]+)([^\w\s]*)(\s*)", re.UNICODE)
 MIN_PAUSE = 0.3  # shorter gaps are plain word spacing, Whisper's grammar decides there
 MAX_SAMPLES = 600
+MAX_EXAMPLES = 50
 
 
 @dataclass
@@ -30,6 +31,8 @@ class LearnedStore:
     path: Path | None = None
     replacements: dict[str, dict[str, int]] = field(default_factory=dict)
     pause_samples: list[tuple[float, int]] = field(default_factory=list)
+    # Recent (draft, corrected) pairs: the user's style, for the LLM step.
+    examples: list[tuple[str, str]] = field(default_factory=list)
 
     # ------------------------------------------------------------ persistence
 
@@ -42,14 +45,45 @@ class LearnedStore:
             path=path,
             replacements=raw.get("replacements", {}),
             pause_samples=[tuple(s) for s in raw.get("pause_samples", [])],
+            examples=[tuple(e) for e in raw.get("examples", [])],
         )
 
     def save(self) -> None:
         if self.path is None:
             return
         self.path.parent.mkdir(parents=True, exist_ok=True)
-        payload = {"replacements": self.replacements, "pause_samples": self.pause_samples}
+        payload = {
+            "replacements": self.replacements,
+            "pause_samples": self.pause_samples,
+            "examples": self.examples,
+        }
         self.path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    def export_rules(self) -> dict:
+        """What is worth sharing between computers: rules and examples, not raw timings."""
+        return {"dictaitor": 1, "replacements": self.replacements, "examples": self.examples}
+
+    def import_rules(self, data: dict) -> int:
+        """Merge an export; counts add up. Returns how many rules were imported."""
+        if data.get("dictaitor") != 1:
+            raise ValueError("to nie jest plik eksportu dictAItor")
+        n = 0
+        for wrong, options in data.get("replacements", {}).items():
+            for right, count in options.items():
+                self.replacements.setdefault(wrong, {})
+                self.replacements[wrong][right] = self.replacements[wrong].get(right, 0) + int(count)
+                n += 1
+        known = set(map(tuple, self.examples))
+        self.examples += [tuple(e) for e in data.get("examples", []) if tuple(e) not in known]
+        self.examples = self.examples[-MAX_EXAMPLES:]
+        return n
+
+    def remove_replacement(self, wrong: str) -> bool:
+        return self.replacements.pop(wrong, None) is not None
+
+    def add_example(self, draft: str, final: str) -> None:
+        if draft.strip() and final.strip() and draft != final:
+            self.examples = (self.examples + [(draft, final)])[-MAX_EXAMPLES:]
 
     # ----------------------------------------------------------- replacements
 
