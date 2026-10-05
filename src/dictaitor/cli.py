@@ -257,6 +257,9 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--force", action="store_true")
     p.set_defaults(func=cmd_init)
 
+    for stream in (sys.stdout, sys.stderr):
+        if stream and (stream.encoding or "").lower().replace("-", "") != "utf8":
+            stream.reconfigure(errors="replace")  # never crash on "ą" or "✔" in an old console
     args = parser.parse_args(argv)
     config = Config.load(args.config)
     for warning in config.warnings:

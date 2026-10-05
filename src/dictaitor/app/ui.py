@@ -354,7 +354,8 @@ def main() -> int:
         from PySide6.QtCore import QProcess
 
         lock.unlock()
-        QProcess.startDetached(sys.executable, ["-m", "dictaitor.app"])
+        args = [] if getattr(sys, "frozen", False) else ["-m", "dictaitor.app"]
+        QProcess.startDetached(sys.executable, args)
         app.quit()
 
     def open_rules():

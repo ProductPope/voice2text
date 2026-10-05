@@ -1,0 +1,25 @@
+name: Bug / Błąd
+description: Something does not work / Coś nie działa
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened? / Co się stało?
+      description: What did you say, what did you expect, what was typed or sent?
+    validations:
+      required: true
+  - type: dropdown
+    id: sent
+    attributes:
+      label: Was text sent or typed when it should not have been? / Czy tekst został wysłany, choć nie powinien?
+      options: ["No / Nie", "Yes / Tak"]
+    validations:
+      required: true
+  - type: input
+    id: setup
+    attributes:
+      label: Windows version, model (from the tray tooltip), target app
+  - type: textarea
+    id: log
+    attributes:
+      label: Error message or screenshot (please remove private text)

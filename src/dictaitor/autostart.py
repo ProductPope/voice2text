@@ -11,6 +11,8 @@ VALUE = "dictAItor"
 
 
 def command() -> str:
+    if getattr(sys, "frozen", False):  # installed build: dictAItor.exe itself
+        return f'"{sys.executable}"'
     exe = Path(sys.executable)
     pythonw = exe.with_name("pythonw.exe")
     return f'"{pythonw if pythonw.exists() else exe}" -m dictaitor.app'

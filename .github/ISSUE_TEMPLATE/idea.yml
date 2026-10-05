@@ -1,0 +1,9 @@
+name: Idea / Pomysł
+description: Suggest an improvement / Zaproponuj usprawnienie
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would help you? / Co by Ci pomogło?
+    validations:
+      required: true

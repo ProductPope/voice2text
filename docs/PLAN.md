@@ -175,7 +175,7 @@ Wszystko w `%APPDATA%\dictaitor\` jako czytelne pliki (TOML/JSON), z eksportem/i
 | M2 ✅ | Aplikacja Windows MVP: tray, skrót, okienko szkicu, wpisywanie w zapamiętane okno, ustawienia, test hasła | dyktujesz do Slacka/przeglądarki na co dzień |
 | M3 ✅ | Uczenie w UI: „popraw ostatni”, ekran reguł, profile stylu, eksport/import | reguły powstają bez edytowania plików |
 | M4 ✅ | Intencje: lokalny LLM + opcjonalna chmura, strażnik zmian, budżet opóźnień | autopoprawki rozumiane poprawnie w zestawie ewaluacyjnym |
-| M5 | Wydanie 0.9 beta: instalator, podpis, CI, dokumentacja EN/PL, nazwa | instalacja na czystym Windows bez Pythona |
+| M5 🟡 | Wydanie 0.9 beta: instalator, podpis, CI, dokumentacja EN/PL, nazwa | instalacja na czystym Windows bez Pythona |
 | M6 | 1.0: poprawki z bety, `winget`, przewodnik dla kontrybutorów | 2–3 tygodnie stabilnego użycia przez testerów |
 
 ## 11. Ryzyka
@@ -264,4 +264,24 @@ Windows Terminal z Claude Code; okno administratora; zmiana okna w trakcie).
   „modelem” – OK.
 - **Nie przetestowane na żywo:** prawdziwe Ollama i prawdziwe Claude API (brak w środowisku
   testowym). Opóźnienie i jakość do zmierzenia `dictaitor eval` z `intent.mode` ustawionym.
+
+## 17. Stan M5 (w trakcie)
+
+Zrobione:
+- `packaging/dictaitor.spec` (PyInstaller): `dictAItor.exe` (aplikacja, bez konsoli) +
+  `dictaitor-cli.exe` (record/eval/prepare) w jednym folderze, tryb UTF-8. Zbudowane
+  i sprawdzone na Linuksie: symulacja, `eval` na nagraniu (wynik identyczny jak ze źródeł),
+  start aplikacji.
+- `packaging/installer.iss` (Inno Setup): instalacja dla bieżącego użytkownika bez
+  uprawnień administratora, skrót w menu Start, opcjonalny autostart, deinstalator.
+- `.github/workflows/build-windows.yml`: build + test spakowanego CLI + instalator jako
+  artefakt; na tagu `v*` – wydanie (GitHub Release) z instalatorem.
+- LICENSE (MIT), README po angielsku (polskie: README.pl.md), SECURITY.md (model
+  prywatności), CONTRIBUTING.md, CHANGELOG.md, szablony zgłoszeń.
+
+Czeka na Ciebie:
+- **Podpis kodu** (żeby Windows nie straszył „nieznany wydawca”): wniosek do SignPath.io
+  (darmowe dla open source) – wymaga Twojego konta i publicznego repozytorium.
+- **Nazwa repozytorium** (voice2text → dictaitor) i przełączenie na publiczne.
+- Test instalatora na Twoim komputerze.
 
