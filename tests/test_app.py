@@ -420,3 +420,51 @@ def test_settings_enabling_claude_needs_consent_and_key(qapp, tmp_path, monkeypa
     cfg = Config.load(path)
     assert cfg["intent"]["mode"] == "claude" and stored == {"key": "sk-ant-test"}
     assert "sk-ant" not in path.read_text(encoding="utf-8")  # the key never lands in config files
+
+
+# ------------------------------------------------------------ diagnostics
+
+
+def test_log_never_contains_dictated_text(caplog):
+    import logging
+
+    caplog.set_level(logging.INFO, logger="dictaitor")
+    c, platform, engine, ui, clock = make()
+    c.register_hotkey()
+    c.toggle()
+    say_safe_phrase(c, engine, "Tajne hasło do banku 1234.")
+    clock.fire()
+    assert platform.typed == ["Tajne hasło do banku 1234."]
+    assert "delivered 26 chars by type" in caplog.text
+    assert "Tajne" not in caplog.text and "1234" not in caplog.text
+
+
+def test_setup_logging_and_excepthook(tmp_path, monkeypatch):
+    import sys
+    import threading
+
+    from dictaitor import diagnostics
+
+    monkeypatch.setattr(sys, "excepthook", sys.excepthook)
+    monkeypatch.setattr(threading, "excepthook", threading.excepthook)
+    path = diagnostics.setup_logging(tmp_path)
+    reports = []
+    diagnostics.install_excepthook(reports.append)
+    try:
+        raise ValueError("boom")
+    except ValueError:
+        sys.excepthook(*sys.exc_info())
+    for h in diagnostics.log.handlers:
+        h.flush()
+    text = path.read_text(encoding="utf-8")
+    assert "start dictAItor" in text and "ValueError: boom" in text
+    assert "ValueError" in reports[0]
+    for h in list(diagnostics.log.handlers):
+        diagnostics.log.removeHandler(h)
+        h.close()
+
+
+def test_model_cache_check_handles_unknown_model():
+    from dictaitor.diagnostics import model_is_cached
+
+    assert model_is_cached("definitely-not-a-model") is False

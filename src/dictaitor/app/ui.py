@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import html
+import logging
 import os
 import sys
 import threading
@@ -13,13 +14,16 @@ from PySide6.QtWidgets import QApplication, QLabel, QMenu, QMessageBox, QSystemT
 
 from ..audio import chunker_for, microphone_frames
 from ..config import Config, home_dir
+from ..diagnostics import install_excepthook, setup_logging
 from ..learning import LearnedStore
+from ..phrase import check_phrase
 from ..pipeline import Pipeline
 from ..session import Session
-from ..phrase import check_phrase
 from .controller import Controller, State
-from .dialogs import CorrectionDialog, PhraseTestDialog, RulesDialog, SettingsDialog, bring_to_front
+from .dialogs import CorrectionDialog, PhraseTestDialog, RulesDialog, SettingsDialog, bring_to_front, open_path
 from .platform import FakePlatform, get_platform
+
+log = logging.getLogger("dictaitor.app")
 
 COLORS = {
     State.LOADING: "#9aa0a6",
@@ -65,6 +69,7 @@ class Engine(QObject):
     preview = Signal(str)
     confirmed = Signal(object, object)  # (callback, Event) - delivered on the Qt thread
     heard = Signal(str)  # phrase test: one utterance transcribed
+    downloading = Signal(str)  # first start: the model is being downloaded
     capture_done = Signal()
 
     def __init__(self, config: Config):
@@ -82,8 +87,18 @@ class Engine(QObject):
         threading.Thread(target=self._load, daemon=True, name="dictaitor-load").start()
 
     def _load(self) -> None:
+        import time
+
+        from ..diagnostics import model_is_cached
+        from ..transcriber import resolve_model
+
+        started = time.perf_counter()
         try:
             from ..transcriber import Transcriber
+
+            choice = resolve_model(self.config)
+            if not model_is_cached(choice.model):
+                self.downloading.emit(choice.model)
 
             vocab = self.store.vocabulary(self.config["learning"]["min_occurrences"])
             self.transcriber = Transcriber(self.config, vocab)
@@ -91,8 +106,11 @@ class Engine(QObject):
             c = self.transcriber.choice
             where = "karta graficzna" if c.device == "cuda" else "procesor"
             note = f" ({self.transcriber.warning})" if self.transcriber.warning else ""
+            log.info("model %s on %s/%s loaded in %.1fs %s", c.model, c.device, c.compute_type,
+                     time.perf_counter() - started, self.transcriber.warning)
             self.ready.emit(f"Model {c.model}, {where}{note}")
         except Exception as exc:
+            log.exception("model load failed")
             self.failed.emit(f"Nie udało się załadować modelu: {exc}")
 
     def start(self, context: str = "") -> None:
@@ -123,6 +141,7 @@ class Engine(QObject):
                     if text and self._listening.is_set():
                         self.preview.emit(text)
         except Exception as exc:
+            log.exception("microphone loop failed")
             self.failed.emit(f"Problem z mikrofonem: {exc}")
 
     def stop(self) -> str:
@@ -305,8 +324,9 @@ def main() -> int:
     home.mkdir(parents=True, exist_ok=True)
     lock = QLockFile(str(home / "app.lock"))
     if not lock.tryLock(5000):  # a restarting instance may still be closing
-        print("dictAItor już działa (ikona w zasobniku).")
+        QMessageBox.information(None, "dictAItor", "dictAItor już działa – szukaj kółka przy zegarze (strzałka ^).")
         return 0
+    log_path = setup_logging(home)
 
     config = Config.load()
     app_cfg = dict(config["app"])
@@ -347,6 +367,13 @@ def main() -> int:
     engine.confirmed.connect(lambda done, event: done(event))
 
     ui.on_correction = controller.apply_correction
+    install_excepthook(lambda message: bridge.call.emit(lambda: ui.notify(message)))
+    engine.downloading.connect(
+        lambda model: ui.notify(
+            f"Pierwsze uruchomienie: pobieram model mowy „{model}” (kilkaset MB). "
+            "To potrwa kilka minut – kółko zmieni kolor, gdy będzie gotowe."
+        )
+    )
     config_path = home / "config.toml"
     windows: dict = {}  # keeps open dialogs alive
 
@@ -409,6 +436,8 @@ def main() -> int:
     recover.triggered.connect(
         lambda: ui.notify("Szkic jest w schowku." if controller.copy_last_unsent() else "Brak niewysłanego szkicu.")
     )
+    show_log = QAction("Dziennik błędów (do zgłoszenia problemu)")
+    show_log.triggered.connect(lambda: open_path(log_path))
     settings = QAction("Ustawienia…")
     settings.triggered.connect(open_settings)
     restart_action = QAction("Uruchom ponownie")
@@ -418,7 +447,7 @@ def main() -> int:
     for action in (dictate, correct, rules, recover):
         menu.addAction(action)
     menu.addSeparator()
-    for action in (settings, restart_action, quit_action):
+    for action in (settings, show_log, restart_action, quit_action):
         menu.addAction(action)
     tray.setContextMenu(menu)
     tray.activated.connect(lambda reason: reason == QSystemTrayIcon.Trigger and controller.toggle())

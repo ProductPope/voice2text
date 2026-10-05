@@ -200,5 +200,6 @@ Nagrania zostają tylko na Twoim komputerze (folder `nagrania`).
 | „nie widzę mikrofonu” | Krok 3; sprawdź też, czy mikrofon działa np. w Rejestratorze głosu. |
 | Nic się nie dzieje, gdy mówię | Mów chwilę dłużej i wyraźniej; sprawdź w **Ustawienia → System → Dźwięk**, który mikrofon jest domyślny. |
 | Hasło nie działa | Po haśle zrób wyraźną pauzę (ok. 1 s). Jeśli Whisper je przekręca, zmień hasło na dłuższe/wyraźniejsze (krok 6). |
+| Aplikacja w zasobniku zachowuje się dziwnie | Prawy przycisk na kółku → **Dziennik błędów** – otworzy się plik tekstowy. Wklej mi jego koniec. Nie ma w nim treści, którą dyktowałeś, tylko zdarzenia i błędy. |
 | Okno się zamknęło z błędem | Uruchom plik jeszcze raz, zrób zrzut ekranu (**Win+Shift+S**) i mi go wyślij. |
 | „Karta graficzna niedostępna… używam procesora” | To tylko informacja – działa, tylko wolniej. Obsługę karty dołożymy później. |

@@ -7,6 +7,7 @@ or to the clipboard when typing there would be unsafe.
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from enum import Enum
 from typing import Callable, Protocol
@@ -17,6 +18,7 @@ from . import hotkeys
 from .platform import Platform
 
 ESCAPE = hotkeys.Hotkey("esc", 0, 0x1B)
+log = logging.getLogger("dictaitor.app")
 
 
 class State(Enum):
@@ -93,6 +95,7 @@ class Controller:
                 problems.append(str(exc))
                 continue
             if self.platform.register_hotkey(hk, self.toggle):
+                log.info("dictation hotkey: %s", spec)
                 self.hotkey = hk
                 if spec != self.cfg["hotkey"]:
                     reason = problems[0] if problems else f"{self.cfg['hotkey']} jest zajęty przez inny program"
@@ -120,6 +123,7 @@ class Controller:
         self._set(State.IDLE, detail=description)
 
     def on_failed(self, message: str) -> None:
+        log.warning("failure in state %s: %s", self.state.value, message)
         if self.state in (State.LISTENING, State.PENDING, State.SENDING):
             self._stop_countdown()
             draft = self.engine.stop()
@@ -219,8 +223,11 @@ class Controller:
             else:
                 self.platform.set_clipboard(text)
         except Exception as exc:
+            log.exception("delivery by %s failed", delivery.method)
             self.platform.set_clipboard(text)
             delivery = Delivery("clipboard", f"Nie udało się wpisać ({exc}) – tekst jest w schowku.")
+        # Only the method and length are logged, never the text itself.
+        log.info("delivered %d chars by %s %s", len(text), delivery.method, delivery.reason[:40])
         self.last_sent = text
         if delivery.reason:
             self.ui.notify(delivery.reason)
@@ -257,5 +264,7 @@ class Controller:
         return True
 
     def _set(self, state: State, draft: str = "", detail: str = "") -> None:
+        if state is not self.state:
+            log.info("state %s -> %s", self.state.value, state.value)
         self.state = state
         self.ui.show(state, draft, detail)
