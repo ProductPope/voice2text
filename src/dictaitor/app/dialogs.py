@@ -29,7 +29,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
-from .. import autostart
+from .. import autostart, intent
 from ..config import Config, update_file
 from ..learning import LearnedStore
 from ..phrase import PhraseCheck
@@ -159,6 +159,21 @@ MODELS = [
     ("medium", "medium – dokładniejszy"),
     ("large-v3-turbo", "large-v3-turbo – najdokładniejszy (karta graficzna lub mocny procesor)"),
 ]
+INTENT_MODES = [
+    ("off", "Wyłączone"),
+    ("local", "Model na tym komputerze (Ollama, LM Studio)"),
+    ("claude", "Claude – chmura (tekst opuszcza komputer)"),
+]
+CLAUDE_MODELS = [
+    ("claude-opus-5-5", "Claude Opus 5.5 – najlepsza jakość"),
+    ("claude-haiku-4-5", "Claude Haiku 4.5 – najszybszy, najtańszy"),
+]
+CLOUD_CONSENT = (
+    "Po włączeniu Claude każdy wysyłany tekst (nie dźwięk) trafi do Anthropic przez internet, "
+    "żeby go uporządkować. Dźwięk i rozpoznawanie mowy nadal zostają na Twoim komputerze.\n\n"
+    "Kółko w zasobniku dostanie białą obwódkę, dopóki ta opcja jest włączona.\n\nWłączyć?"
+)
+
 DELIVERY = [
     ("auto", "Wpisuj w okno (wielowierszowe – wklejaj)"),
     ("paste", "Zawsze wklejaj"),
@@ -200,6 +215,25 @@ class SettingsDialog(QDialog):
         self.autostart.setChecked(autostart.is_enabled())
         form.addRow("", self.autostart)
 
+        i = config["intent"]
+        form.addRow(QLabel("<b>Porządkowanie przez AI</b> (np. „w poniedziałek… nie, we wtorek” → „we wtorek”)"))
+        self.intent_mode = self._combo(INTENT_MODES, i["mode"])
+        self.intent_mode.currentIndexChanged.connect(self._mode_changed)
+        form.addRow("Tryb:", self.intent_mode)
+        self.instructions = QLineEdit(i["instructions"])
+        self.instructions.setPlaceholderText("np. Pisz zwięźle. Bez wykrzykników.")
+        form.addRow("Twoje zasady stylu:", self.instructions)
+        self.local_model = QLineEdit(i["local_model"])
+        form.addRow("Model lokalny:", self.local_model)
+        self.claude_model = self._combo(CLAUDE_MODELS, i["claude_model"])
+        form.addRow("Model Claude:", self.claude_model)
+        self.api_key = QLineEdit()
+        self.api_key.setEchoMode(QLineEdit.Password)
+        has_key = bool(intent.get_api_key())
+        self.api_key.setPlaceholderText("zapisany – wpisz nowy, żeby zmienić" if has_key else "sk-ant-… (z console.anthropic.com)")
+        form.addRow("Klucz API Claude:", self.api_key)
+        self._mode_changed()
+
         layout = QVBoxLayout(self)
         layout.addLayout(form)
         layout.addWidget(QLabel("Skróty wpisuj jak: ctrl+alt+d, f9, ctrl+shift+space."))
@@ -222,6 +256,13 @@ class SettingsDialog(QDialog):
         box.setCurrentIndex(index)
         return box
 
+    def _mode_changed(self) -> None:
+        mode = self.intent_mode.currentData()
+        self.local_model.setEnabled(mode == "local")
+        self.claude_model.setEnabled(mode == "claude")
+        self.api_key.setEnabled(mode == "claude")
+        self.instructions.setEnabled(mode != "off")
+
     def _advanced(self) -> None:
         if not self.path.exists():
             update_file(self.path, {})
@@ -237,6 +278,15 @@ class SettingsDialog(QDialog):
         if not self.send_phrase.text().strip():
             QMessageBox.warning(self, "dictAItor", "Hasło wysyłki nie może być puste.")
             return
+        mode = self.intent_mode.currentData()
+        if mode == "claude" and self.config["intent"]["mode"] != "claude":
+            if QMessageBox.question(self, "dictAItor – chmura", CLOUD_CONSENT) != QMessageBox.Yes:
+                return
+        if mode == "claude" and self.api_key.text().strip():
+            intent.set_api_key(self.api_key.text().strip())
+        elif mode == "claude" and not intent.get_api_key():
+            QMessageBox.warning(self, "dictAItor", "Podaj klucz API Claude (console.anthropic.com → API Keys).")
+            return
         update_file(
             self.path,
             {
@@ -248,6 +298,12 @@ class SettingsDialog(QDialog):
                     "delivery": self.delivery.currentData(),
                 },
                 "general": {"model": self.model.currentData()},
+                "intent": {
+                    "mode": mode,
+                    "instructions": self.instructions.text().strip(),
+                    "local_model": self.local_model.text().strip() or "llama3.1",
+                    "claude_model": self.claude_model.currentData(),
+                },
             },
         )
         if os.name == "nt" and self.autostart.isChecked() != autostart.is_enabled():

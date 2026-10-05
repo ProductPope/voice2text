@@ -135,6 +135,30 @@ powiesz je 3 razy, a program pokaże, czy dobrze je słyszy), skróty, czas na E
 sposób wpisywania, model mowy i **uruchamianie razem z Windows**.
 Po zapisaniu program zapyta o ponowne uruchomienie.
 
+## Krok 5c. Porządkowanie przez AI (opcjonalnie)
+
+Bez AI dictAItor zapisuje dokładnie to, co powiedziałeś (z interpunkcją z pauz).
+Z AI rozumie też poprawki w locie: „w poniedziałek… nie, we wtorek” → „we wtorek”,
+usuwa powtórzenia i stosuje Twoje zasady stylu. Masz dwie drogi:
+
+**A. Lokalnie (nic nie wychodzi z komputera, potrzeba ok. 8 GB wolnej pamięci RAM)**
+1. Zainstaluj **Ollama** ze strony https://ollama.com (Download → Windows).
+2. Otwórz PowerShell (Start → wpisz „PowerShell”) i wpisz: `ollama pull llama3.1`
+   – pobierze się model (ok. 5 GB). Możesz też spróbować polskiego modelu Bielik,
+   jeśli jest dostępny w bibliotece Ollama.
+3. W dictAItor: prawy przycisk na kółku → **Ustawienia…** → *Porządkowanie przez AI* →
+   **Model na tym komputerze**, w polu „Model lokalny” wpisz nazwę modelu (np. `llama3.1`).
+
+**B. Claude (chmura – najlepsza jakość, tekst trafia do Anthropic)**
+1. Załóż klucz API na https://console.anthropic.com (→ API Keys). To osobne konto
+   rozliczeniowe – subskrypcja Claude/Claude Code nie obejmuje API.
+2. **Ustawienia…** → *Porządkowanie przez AI* → **Claude**, wklej klucz, zapisz.
+   Program zapyta o zgodę. Klucz trafia do Menedżera poświadczeń Windows, nie do plików.
+3. Kółko w zasobniku ma teraz **białą obwódkę** – znak, że tekst idzie do chmury.
+
+W obu przypadkach, jeśli AI nie odpowie w 8 s, dopisze coś od siebie albo zmieni za dużo,
+wysłany zostanie Twój tekst bez zmian (dostaniesz powiadomienie).
+
 ## Krok 6. Zmiana hasła i własnych reguł (opcjonalnie)
 
 Dwuklik **`5-ustawienia.bat`** – otworzy się Notatnik z ustawieniami. Najważniejsze:

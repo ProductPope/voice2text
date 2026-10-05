@@ -174,7 +174,7 @@ Wszystko w `%APPDATA%\dictaitor\` jako czytelne pliki (TOML/JSON), z eksportem/i
 | M1 ✅ | Rdzeń produkcyjny: Silero VAD, podgląd na żywo, filtr halucynacji, hotwords, autodobór modelu, `dictaitor eval`, refaktor configu (walidacja, `%APPDATA%`) | testy + zestaw ewaluacyjny, 0 fałszywych wysyłek |
 | M2 ✅ | Aplikacja Windows MVP: tray, skrót, okienko szkicu, wpisywanie w zapamiętane okno, ustawienia, test hasła | dyktujesz do Slacka/przeglądarki na co dzień |
 | M3 ✅ | Uczenie w UI: „popraw ostatni”, ekran reguł, profile stylu, eksport/import | reguły powstają bez edytowania plików |
-| M4 | Intencje: lokalny LLM + opcjonalna chmura, strażnik zmian, budżet opóźnień | autopoprawki rozumiane poprawnie w zestawie ewaluacyjnym |
+| M4 ✅ | Intencje: lokalny LLM + opcjonalna chmura, strażnik zmian, budżet opóźnień | autopoprawki rozumiane poprawnie w zestawie ewaluacyjnym |
 | M5 | Wydanie 0.9 beta: instalator, podpis, CI, dokumentacja EN/PL, nazwa | instalacja na czystym Windows bez Pythona |
 | M6 | 1.0: poprawki z bety, `winget`, przewodnik dla kontrybutorów | 2–3 tygodnie stabilnego użycia przez testerów |
 
@@ -244,4 +244,24 @@ Windows Terminal z Claude Code; okno administratora; zmiana okna w trakcie).
 - **„Czego się nauczyłem…”**: tabela reguł z licznikami, usuwanie, eksport/import JSON
   (przeniesienie na inny komputer), progi pauz i liczba przykładów.
 - Profile stylu per aplikacja – przeniesione do M4 (wymagają kroku LLM).
+
+## 16. Stan M4
+
+- `intent.py`: tryby `off` / `local` (dowolny serwer zgodny z OpenAI na tym komputerze:
+  Ollama, LM Studio, llama.cpp; adresy zdalne zablokowane bez `allow_remote`) /
+  `claude` (Claude API, domyślnie `claude-opus-5-5` z `effort: low` i serwerowym
+  `fallbacks: "default"`; do wyboru `claude-haiku-4-5` – szybszy i tańszy).
+- Prompt: zasady porządkowania (autopoprawki, powtórzenia, interpunkcja, bez dopisywania
+  treści, zachowanie żargonu), Twoje `instructions`, profil stylu dla okna
+  (`[profiles]`: fragment tytułu okna → zasady) i do 6 ostatnich Twoich poprawek z Ctrl+Alt+K.
+- Strażnik: wynik dłuższy niż szkic o >25% + 4 słowa albo z >25% nowych słów → wysyłany
+  szkic. Błąd, odmowa modelu, brak klucza, timeout (8 s) → szkic + powiadomienie.
+- Aplikacja: porządkowanie w tle (stan „Wpisuję” – niebieski), Esc działa tylko przed nim;
+  zgoda przy włączaniu chmury, klucz API w Menedżerze poświadczeń Windows (`keyring`),
+  biała obwódka ikony, gdy chmura włączona.
+- Testy: strażnik, prompt, prawdziwy lokalny serwer HTTP, kształt zapytania do Claude
+  (atrapa klienta), odmowa, brak klucza, profile; pełny przebieg aplikacji z lokalnym
+  „modelem” – OK.
+- **Nie przetestowane na żywo:** prawdziwe Ollama i prawdziwe Claude API (brak w środowisku
+  testowym). Opóźnienie i jakość do zmierzenia `dictaitor eval` z `intent.mode` ustawionym.
 

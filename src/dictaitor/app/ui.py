@@ -15,7 +15,7 @@ from ..audio import chunker_for, microphone_frames
 from ..config import Config, home_dir
 from ..learning import LearnedStore
 from ..pipeline import Pipeline
-from ..session import Event, Session
+from ..session import Session
 from ..phrase import check_phrase
 from .controller import Controller, State
 from .dialogs import CorrectionDialog, PhraseTestDialog, RulesDialog, SettingsDialog, bring_to_front
@@ -26,22 +26,31 @@ COLORS = {
     State.IDLE: "#5f6368",
     State.LISTENING: "#d93025",
     State.PENDING: "#f29900",
+    State.SENDING: "#1a73e8",
 }
 STATUS = {
     State.LOADING: "Ładuję model mowy…",
     State.IDLE: "Gotowy",
     State.LISTENING: "Słucham – powiedz hasło, żeby wpisać",
     State.PENDING: "Hasło rozpoznane",
+    State.SENDING: "Wpisuję",
 }
 
 
-def dot_icon(color: str) -> QIcon:
+def dot_icon(color: str, cloud: bool = False) -> QIcon:
+    """Coloured dot; a white ring means text may go to the cloud (Claude)."""
     pix = QPixmap(64, 64)
     pix.fill(Qt.transparent)
     p = QPainter(pix)
     p.setRenderHint(QPainter.Antialiasing)
     p.setBrush(QColor(color))
-    p.setPen(Qt.NoPen)
+    if cloud:
+        pen = p.pen()
+        pen.setColor(QColor("#ffffff"))
+        pen.setWidth(8)
+        p.setPen(pen)
+    else:
+        p.setPen(Qt.NoPen)
     p.drawEllipse(6, 6, 52, 52)
     p.end()
     return QIcon(pix)
@@ -54,6 +63,7 @@ class Engine(QObject):
     failed = Signal(str)
     event = Signal(object)
     preview = Signal(str)
+    confirmed = Signal(object, object)  # (callback, Event) - delivered on the Qt thread
     heard = Signal(str)  # phrase test: one utterance transcribed
     capture_done = Signal()
 
@@ -85,12 +95,13 @@ class Engine(QObject):
         except Exception as exc:
             self.failed.emit(f"Nie udało się załadować modelu: {exc}")
 
-    def start(self) -> None:
+    def start(self, context: str = "") -> None:
         if self._thread and self._thread.is_alive():
             self._listening.clear()
             self._thread.join(timeout=2)
         with self._lock:
             self.session.reset()
+            self.session.context = context
         self._listening.set()
         self._thread = threading.Thread(target=self._listen, daemon=True, name="dictaitor-mic")
         self._thread.start()
@@ -122,9 +133,15 @@ class Engine(QObject):
                 self.session.reset()
         return draft
 
-    def confirm(self) -> Event:
-        with self._lock:
-            return self.session.confirm_send()
+    def confirm(self, done) -> None:
+        """Finish the send off the UI thread: the optional AI step can take seconds."""
+
+        def run():
+            with self._lock:
+                event = self.session.confirm_send()
+            self.confirmed.emit(done, event)
+
+        threading.Thread(target=run, daemon=True, name="dictaitor-send").start()
 
     def cancel_pending(self) -> None:
         with self._lock:
@@ -205,7 +222,7 @@ class Overlay(QWidget):
         color = COLORS[state]
         status = STATUS[state] + (f" – {detail}" if detail else "")
         self.status.setText(f'<span style="color:{color}">●</span> {status}')
-        if state in (State.LISTENING, State.PENDING):
+        if state in (State.LISTENING, State.PENDING, State.SENDING):
             if draft or state is State.PENDING:
                 self._draft_text = draft
             self._render(self._draft_text, "")
@@ -236,13 +253,15 @@ class Overlay(QWidget):
 
 
 class QtUI:
-    def __init__(self, tray: QSystemTrayIcon, overlay: Overlay):
+    def __init__(self, tray: QSystemTrayIcon, overlay: Overlay, cloud: bool = False):
         self.tray = tray
         self.overlay = overlay
+        self.cloud = cloud  # Claude enabled: text leaves the computer, so say so everywhere
 
     def show(self, state: State, draft: str = "", detail: str = "") -> None:
-        self.tray.setIcon(dot_icon(COLORS[state]))
-        self.tray.setToolTip(f"dictAItor – {STATUS[state]}")
+        self.tray.setIcon(dot_icon(COLORS[state], self.cloud))
+        suffix = " – porządkowanie przez Claude (chmura)" if self.cloud else ""
+        self.tray.setToolTip(f"dictAItor – {STATUS[state]}{suffix}")
         self.overlay.update_view(state, draft, detail)
 
     def preview(self, text: str) -> None:
@@ -291,6 +310,7 @@ def main() -> int:
 
     config = Config.load()
     app_cfg = dict(config["app"])
+    app_cfg["intent_mode"] = config["intent"]["mode"]
     platform = get_platform()
     if os.name != "nt":
         platform = QtClipboardPlatform()
@@ -298,7 +318,7 @@ def main() -> int:
 
     tray = QSystemTrayIcon(dot_icon(COLORS[State.LOADING]))
     overlay = Overlay()
-    ui = QtUI(tray, overlay)
+    ui = QtUI(tray, overlay, cloud=config["intent"]["mode"] == "claude")
     engine = Engine(config)
     bridge = _Bridge()
 
@@ -324,6 +344,7 @@ def main() -> int:
     engine.failed.connect(controller.on_failed)
     engine.event.connect(controller.on_event)
     engine.preview.connect(controller.on_preview)
+    engine.confirmed.connect(lambda done, event: done(event))
 
     ui.on_correction = controller.apply_correction
     config_path = home / "config.toml"

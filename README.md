@@ -87,20 +87,23 @@ Pozdrawiam.
 Nauczone dane leżą w `~/.config/dictaitor/learned.json` (zwykły JSON, możesz go edytować
 lub usunąć). Katalog zmienisz zmienną `DICTAITOR_HOME`.
 
-## Intencje (opcjonalnie, lokalny LLM)
+## Intencje – porządkowanie przez AI (opcjonalnie)
 
 Heurystyki pauz nie złapią np. „w poniedziałek… nie, we wtorek”. Do tego jest opcjonalny
-krok przez **lokalny** model w [Ollama](https://ollama.com):
+krok przez model językowy (`[intent]` w `config.toml` albo **Ustawienia…** w aplikacji):
 
-```toml
-[polish]
-enabled = true
-model = "llama3.1"
-instructions = "Pisz zwięźle, bez wykrzykników."
-```
+| `mode` | Gdzie trafia tekst |
+|---|---|
+| `off` (domyślnie) | nigdzie |
+| `local` | do modelu na **Twoim komputerze** – [Ollama](https://ollama.com), LM Studio, llama.cpp (API zgodne z OpenAI). Adresy spoza komputera są blokowane, dopóki nie ustawisz `allow_remote = true`. |
+| `claude` | do **Claude API** (chmura) – tylko po świadomym włączeniu; klucz w Menedżerze poświadczeń Windows, nie w plikach |
 
-Wysyłka do adresu innego niż `localhost` jest zablokowana, dopóki jawnie nie ustawisz
-`allow_remote = true`. Poprawki LLM-a nie uczą reguł – uczą tylko Twoje własne edycje.
+Model dostaje Twoje zasady stylu (`instructions`, a dla konkretnych aplikacji `[profiles]`,
+np. inne dla Slacka, inne dla Outlooka) i kilka Twoich ostatnich poprawek z Ctrl+Alt+K jako
+przykłady. **Strażnik** porównuje wynik ze szkicem: jeśli model dopisze treść albo zmieni
+za dużo słów, wysyłany jest tekst bez zmian. Błąd lub przekroczony czas (`timeout`)
+również kończą się wysłaniem szkicu – dyktowanie nigdy nie przepada przez AI.
+Poprawki modelu nie uczą reguł – uczą tylko Twoje własne edycje.
 
 ## Testowanie bez mikrofonu
 
@@ -160,7 +163,7 @@ src/dictaitor/
   gate.py         bezpieczne hasło / anulowanie
   composer.py     pauzy → interpunkcja, komendy, wypełniacze, cofanie
   learning.py     uczenie zamian słów i progów pauz
-  polish.py       opcjonalny lokalny LLM
+  intent.py       porządkowanie przez AI: lokalny model lub Claude, strażnik zmian
   session.py      spina wszystko; wysyła tylko po haśle
   output.py       schowek / wpisywanie / plik / stdout / komenda
   app/            aplikacja w zasobniku: controller (logika), win32 (Windows), ui (Qt)

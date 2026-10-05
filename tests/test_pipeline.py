@@ -1,11 +1,7 @@
-import numpy as np
-import pytest
-
-from dictaitor.composer import Composer, Word
+from dictaitor.composer import Composer
 from dictaitor.config import Config
 from dictaitor.gate import Action, Gate
 from dictaitor.learning import LearnedStore, apply_replacements
-from dictaitor.polish import PolishError, polish
 from dictaitor.script import parse_script
 from dictaitor.session import Session
 
@@ -198,10 +194,7 @@ def test_store_roundtrip(tmp_path):
 # ---------------------------------------------------------------- privacy
 
 
-def test_polish_refuses_remote_url():
-    config = cfg(polish={"enabled": True, "url": "https://api.example.com"})
-    with pytest.raises(PolishError):
-        polish("tekst", config)
+
 
 
 def test_confirm_mode_waits_and_can_be_cancelled():

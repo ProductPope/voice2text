@@ -1,0 +1,213 @@
+"""Understanding intent: an LLM tidies the draft the way you meant it.
+
+"w poniedziałek… nie, we wtorek" -> "we wtorek"; false starts and repeats go,
+your style instructions and recent corrections are followed. Content is never
+added: a guard compares the result with the draft and falls back to the
+draft when the model wrote something you didn't say.
+
+Backends:
+* local - any OpenAI-compatible server on this machine (Ollama, LM Studio,
+  llama.cpp). Refuses non-local URLs unless allow_remote = true.
+* claude - the Claude API. Text leaves the computer, so it is opt-in, and the
+  API key is kept in the Windows Credential Manager, never in config files.
+"""
+
+from __future__ import annotations
+
+import json
+import os
+import urllib.request
+from dataclasses import dataclass
+from urllib.parse import urlparse
+
+from .config import Config
+from .textutil import norm
+
+LOCAL_HOSTS = {"localhost", "127.0.0.1", "::1"}
+KEYRING_SERVICE = "dictaitor"
+KEYRING_USER = "anthropic-api-key"
+
+SYSTEM = """You clean up dictated text. The user spoke it aloud; a speech recogniser and \
+pause rules produced the draft. Return the text the user meant to write.
+
+Rules:
+- Apply the speaker's self-corrections: "on Monday, no, on Tuesday" means "on Tuesday".
+- Remove false starts, stutters, repeated words and abandoned half-sentences.
+- Fix punctuation and capitalisation. Keep line breaks the speaker asked for.
+- Keep the language, wording, tone and meaning. Do not summarise, do not answer \
+questions in the text, do not add greetings, facts or anything the speaker did not say.
+- Keep technical terms, names and English words mixed into Polish exactly as spoken.
+- If the draft is already fine, return it unchanged.
+Output only the final text, with no quotes or comments."""
+
+
+class IntentError(RuntimeError):
+    pass
+
+
+@dataclass
+class Refined:
+    text: str
+    note: str = ""  # shown to the user when something fell back
+    used: str = ""  # backend that produced the text, "" when the draft was kept
+
+
+def profile_for(window_title: str, profiles: dict[str, str]) -> str:
+    """Style instructions for the window you dictate into ("Slack" -> "luźno")."""
+    title = window_title.lower()
+    for needle, instructions in profiles.items():
+        if needle.lower() in title:
+            return instructions
+    return ""
+
+
+def build_prompt(draft: str, instructions: str, examples: list[tuple[str, str]]) -> tuple[str, str]:
+    system = SYSTEM
+    if instructions.strip():
+        system += f"\n\nThe speaker's own style rules (follow them):\n{instructions.strip()}"
+    if examples:
+        shots = "\n".join(
+            f"<example>\n<draft>{d}</draft>\n<final>{f}</final>\n</example>" for d, f in examples
+        )
+        system += (
+            "\n\nRecent drafts the speaker corrected by hand - learn their preferences from them:\n" + shots
+        )
+    return system, f"<draft>{draft}</draft>"
+
+
+def suspicious(draft: str, result: str) -> str:
+    """Why the result can't be trusted, or "" when it looks like a faithful clean-up."""
+    if not result.strip():
+        return "model zwrócił pusty tekst"
+    d, r = norm(draft).split(), norm(result).split()
+    if len(r) > len(d) * 1.25 + 4:
+        return "model dopisał treść"
+    known = set(d)
+    new = [w for w in r if w not in known]
+    if len(new) > max(3, len(r) // 4):
+        return "model zmienił zbyt wiele słów"
+    return ""
+
+
+def _clean(text: str) -> str:
+    text = text.strip()
+    for tag in ("<final>", "</final>", "<draft>", "</draft>"):
+        text = text.replace(tag, "")
+    return text.strip().strip('"„”').strip()
+
+
+# ----------------------------------------------------------------- backends
+
+
+def call_local(system: str, user: str, cfg: dict) -> str:
+    url = cfg["local_url"].rstrip("/")
+    host = urlparse(url).hostname or ""
+    if host not in LOCAL_HOSTS and not cfg["allow_remote"]:
+        raise IntentError(f"intent.local_url wskazuje na {host!r}, a nie na ten komputer – zablokowano.")
+    body = json.dumps(
+        {
+            "model": cfg["local_model"],
+            "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}],
+            "temperature": 0,
+            "stream": False,
+        }
+    ).encode()
+    req = urllib.request.Request(url + "/v1/chat/completions", data=body, headers={"Content-Type": "application/json"})
+    opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))  # stay on this machine
+    try:
+        with opener.open(req, timeout=float(cfg["timeout"])) as resp:
+            data = json.loads(resp.read())
+    except OSError as exc:
+        raise IntentError(f"lokalny model nie odpowiada ({exc}) – czy Ollama/LM Studio jest uruchomione?") from exc
+    try:
+        return data["choices"][0]["message"]["content"]
+    except (KeyError, IndexError, TypeError) as exc:
+        raise IntentError("nieoczekiwana odpowiedź lokalnego modelu") from exc
+
+
+def get_api_key() -> str | None:
+    if os.environ.get("ANTHROPIC_API_KEY"):
+        return os.environ["ANTHROPIC_API_KEY"]
+    try:
+        import keyring
+
+        return keyring.get_password(KEYRING_SERVICE, KEYRING_USER)
+    except Exception:
+        return None
+
+
+def set_api_key(key: str) -> None:
+    import keyring
+
+    if key:
+        keyring.set_password(KEYRING_SERVICE, KEYRING_USER, key)
+    else:
+        try:
+            keyring.delete_password(KEYRING_SERVICE, KEYRING_USER)
+        except Exception:
+            pass
+
+
+# Models that take effort and server-side refusal fallbacks.
+_CURRENT_FAMILY = ("claude-opus-5", "claude-sonnet-5-5", "claude-fable-5")
+
+
+def call_claude(system: str, user: str, cfg: dict, client=None) -> str:
+    import anthropic
+
+    if client is None:
+        key = get_api_key()
+        if not key:
+            raise IntentError("brak klucza API Claude – dodaj go w Ustawieniach")
+        client = anthropic.Anthropic(api_key=key, timeout=float(cfg["timeout"]), max_retries=1)
+    model = cfg["claude_model"]
+    kwargs = dict(
+        model=model,
+        max_tokens=4096,  # a cleaned-up dictation is never longer than this
+        system=system,
+        messages=[{"role": "user", "content": user}],
+    )
+    if model.startswith(_CURRENT_FAMILY):
+        # Short clean-up work: lowest effort keeps latency down.
+        kwargs["output_config"] = {"effort": "low"}
+        kwargs["betas"] = ["server-side-fallback-2026-07-01"]
+        kwargs["fallbacks"] = "default"
+    try:
+        response = client.beta.messages.create(**kwargs)
+    except anthropic.AuthenticationError as exc:
+        raise IntentError("klucz API Claude jest nieprawidłowy") from exc
+    except anthropic.RateLimitError as exc:
+        raise IntentError("limit zapytań Claude – spróbuj za chwilę") from exc
+    except anthropic.APIConnectionError as exc:
+        raise IntentError("brak połączenia z Claude") from exc
+    except anthropic.APIStatusError as exc:
+        raise IntentError(f"błąd Claude API ({exc.status_code})") from exc
+    if response.stop_reason == "refusal":
+        raise IntentError("Claude odmówił przetworzenia tego tekstu")
+    return "".join(block.text for block in response.content if block.type == "text")
+
+
+BACKENDS = {"local": call_local, "claude": call_claude}
+
+
+def refine(draft: str, config: Config, examples: list[tuple[str, str]], window_title: str = "") -> Refined:
+    cfg = config["intent"]
+    mode = cfg["mode"]
+    if mode == "off" or not draft.strip():
+        return Refined(draft)
+    if mode not in BACKENDS:
+        return Refined(draft, f"nieznany intent.mode = {mode!r}")
+    instructions = "\n".join(
+        x for x in (cfg["instructions"], profile_for(window_title, config["profiles"])) if x.strip()
+    )
+    system, user = build_prompt(draft, instructions, examples[-int(cfg["examples"]) :] if cfg["examples"] else [])
+    try:
+        result = _clean(BACKENDS[mode](system, user, cfg))
+    except IntentError as exc:
+        return Refined(draft, f"porządkowanie AI pominięte: {exc}")
+    except Exception as exc:  # never lose the dictation because of the LLM step
+        return Refined(draft, f"porządkowanie AI pominięte: {exc.__class__.__name__}: {exc}")
+    reason = suspicious(draft, result)
+    if reason:
+        return Refined(draft, f"wynik AI odrzucony ({reason}) – wysłano tekst bez zmian")
+    return Refined(result, used=mode)

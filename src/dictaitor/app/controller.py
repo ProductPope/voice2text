@@ -24,6 +24,7 @@ class State(Enum):
     IDLE = "idle"
     LISTENING = "listening"
     PENDING = "pending"
+    SENDING = "sending"  # optional AI clean-up running, then delivery
 
 
 @dataclass
@@ -33,9 +34,9 @@ class Delivery:
 
 
 class Engine(Protocol):
-    def start(self) -> None: ...
+    def start(self, context: str = "") -> None: ...
     def stop(self) -> str: ...  # returns the unsent draft
-    def confirm(self) -> Event: ...
+    def confirm(self, done: Callable[[Event], None]) -> None: ...  # may finish on another tick
     def cancel_pending(self) -> None: ...
     def learn_correction(self, corrected: str) -> list[tuple[str, str]]: ...
 
@@ -119,7 +120,7 @@ class Controller:
         self._set(State.IDLE, detail=description)
 
     def on_failed(self, message: str) -> None:
-        if self.state in (State.LISTENING, State.PENDING):
+        if self.state in (State.LISTENING, State.PENDING, State.SENDING):
             self._stop_countdown()
             draft = self.engine.stop()
             if draft:
@@ -134,8 +135,9 @@ class Controller:
             self.ui.notify("Jeszcze ładuję model mowy – za chwilę będzie gotowy.")
         elif self.state is State.IDLE:
             self.target = self.platform.foreground_window()
-            self.engine.start()
-            self._set(State.LISTENING, detail=self.platform.window_title(self.target))
+            title = self.platform.window_title(self.target)
+            self.engine.start(title)
+            self._set(State.LISTENING, detail=title)
         elif self.state is State.LISTENING:
             # Hotkey again = stop without sending. Keep the draft recoverable.
             draft = self.engine.stop()
@@ -145,6 +147,8 @@ class Controller:
             self._set(State.IDLE)
         elif self.state is State.PENDING:
             self.escape()
+        elif self.state is State.SENDING:
+            self.ui.notify("Kończę przygotowywanie tekstu – chwilę.")
 
     def escape(self) -> None:
         if self.state is not State.PENDING:
@@ -187,12 +191,21 @@ class Controller:
         if self.state is not State.PENDING and self.cfg["abort_seconds"] > 0:
             return
         self._stop_countdown()
-        event = self.engine.confirm()
+        detail = "porządkuję tekst…" if self.cfg.get("intent_mode", "off") != "off" else ""
+        self._set(State.SENDING, detail=detail)
+        self.engine.confirm(self._on_confirmed)
+
+    def _on_confirmed(self, event: Event) -> None:
+        if self.state is not State.SENDING:
+            return
         self.engine.stop()
-        text = event.sent or ""
         self._set(State.IDLE)
+        text = event.sent or ""
+        notes = event.info.strip("; ")
         if text:
             self.deliver(text)
+        if notes:
+            self.ui.notify(notes)
 
     def deliver(self, text: str) -> Delivery:
         delivery = choose_delivery(
@@ -215,7 +228,7 @@ class Controller:
 
     def correct(self) -> None:
         """Ctrl+Alt+K: fix the last sent text so dictAItor learns from it."""
-        if self.state in (State.LISTENING, State.PENDING):
+        if self.state in (State.LISTENING, State.PENDING, State.SENDING):
             self.ui.notify("Najpierw dokończ albo przerwij dyktowanie.")
         elif not self.last_sent:
             self.ui.notify("Nic jeszcze nie zostało wysłane w tej sesji.")

@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from dictaitor.audio import FRAME_SAMPLES, Chunker, EnergyScorer, frames_of
+from dictaitor.audio import Chunker, EnergyScorer, frames_of
 from dictaitor.composer import Word
 from dictaitor.config import Config, unknown_keys
 from dictaitor.evaluate import evaluate_audio, format_report, load_expected, Report

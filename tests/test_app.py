@@ -41,16 +41,17 @@ class FakeEngine:
         self.pending = None
         self.cancelled = 0
 
-    def start(self):
+    def start(self, context=""):
         self.started += 1
+        self.context = context
 
     def stop(self):
         draft, self.draft = self.draft, ""
         return draft
 
-    def confirm(self):
+    def confirm(self, done):
         text, self.pending = self.pending, None
-        return Event(Action.SEND, "", sent=text)
+        done(Event(Action.SEND, "", sent=text, info=getattr(self, "info", "")))
 
     def cancel_pending(self):
         self.cancelled += 1
@@ -370,3 +371,52 @@ def test_phrase_test_dialog_shows_verdict(qapp):
     d.add_heard("zatwierdzam bez zmian")
     d.show_result(check_phrase("zatwierdzam bez zmian", ["zatwierdzam bez zmian"] * 3, 0.8))
     assert "dobre" in d.label.text()
+
+
+def test_window_title_is_passed_for_style_profiles():
+    c, platform, engine, ui, clock = make()
+    platform.window = 7
+    c.toggle()
+    assert engine.context == "okno 7"
+
+
+def test_ai_notes_are_shown_after_delivery():
+    c, platform, engine, ui, clock = make(intent_mode="local")
+    engine.info = "; porządkowanie AI pominięte: lokalny model nie odpowiada"
+    c.toggle()
+    say_safe_phrase(c, engine, "Tekst.")
+    clock.fire()
+    assert platform.typed == ["Tekst."] and ui.notes[-1].startswith("porządkowanie AI pominięte")
+
+
+def test_esc_is_ignored_while_sending():
+    c, platform, engine, ui, clock = make()
+    engine.confirm = lambda done: None  # AI still working
+    c.toggle()
+    say_safe_phrase(c, engine, "Tekst.")
+    clock.fire()
+    assert c.state is State.SENDING
+    c.escape()
+    c.toggle()
+    assert c.state is State.SENDING and "chwilę" in ui.notes[-1]
+
+
+def test_settings_enabling_claude_needs_consent_and_key(qapp, tmp_path, monkeypatch):
+    from dictaitor.app import dialogs
+    from dictaitor.config import Config
+
+    stored = {}
+    monkeypatch.setattr(dialogs.intent, "get_api_key", lambda: stored.get("key"))
+    monkeypatch.setattr(dialogs.intent, "set_api_key", lambda k: stored.update(key=k))
+    answers = [dialogs.QMessageBox.No, dialogs.QMessageBox.Yes]
+    monkeypatch.setattr(dialogs.QMessageBox, "question", lambda *a: answers.pop(0))
+    path = tmp_path / "config.toml"
+    d = dialogs.SettingsDialog(Config(), path, lambda p: None, lambda: None)
+    d.intent_mode.setCurrentIndex(d.intent_mode.findData("claude"))
+    d.api_key.setText("sk-ant-test")
+    d._save()  # consent declined -> nothing saved
+    assert not path.exists() and stored == {}
+    d._save()
+    cfg = Config.load(path)
+    assert cfg["intent"]["mode"] == "claude" and stored == {"key": "sk-ant-test"}
+    assert "sk-ant" not in path.read_text(encoding="utf-8")  # the key never lands in config files

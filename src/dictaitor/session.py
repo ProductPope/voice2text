@@ -13,7 +13,7 @@ from .composer import Composer, Word
 from .config import Config, home_dir
 from .gate import Action, Gate
 from .learning import LearnedStore, apply_replacements
-from .polish import PolishError, polish
+from .intent import refine
 
 
 @dataclass
@@ -56,6 +56,8 @@ class Session:
         # What was last sent, kept so "correct last" (Ctrl+Alt+K) can learn from it.
         self.last_sent = ""
         self.last_boundaries: list = []
+        # Title of the window being dictated into, for per-app style profiles.
+        self.context = ""
         self._new_composer()
 
     def _new_composer(self) -> None:
@@ -121,11 +123,10 @@ class Session:
         boundaries = list(self.composer.boundaries)
         final = draft
         notes = []
-        if self.config["polish"]["enabled"]:
-            try:
-                final = polish(final, self.config)
-            except PolishError as exc:
-                notes.append(str(exc))
+        refined = refine(final, self.config, self.store.examples, self.context)
+        final = refined.text
+        if refined.note:
+            notes.append(refined.note)
         if self.config["review"]["enabled"]:
             shown = final
             final = self.reviewer(shown)

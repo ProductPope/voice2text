@@ -56,14 +56,24 @@ command = ""            # np. "wl-copy" albo "xclip -selection clipboard"
 # i jednocześnie uczą narzędzie (zamiany słów + progi pauz).
 enabled = false
 
-[polish]
-# Opcjonalne „rozumienie intencji” przez LOKALNY model (Ollama),
-# np. „we wtorek, nie, w środę” → „w środę”. Domyślnie wyłączone.
-enabled = false
-url = "http://localhost:11434"
-model = "llama3.1"
-instructions = "Pisz zwięźle. Nie używaj wykrzykników."
-allow_remote = false    # zabezpieczenie: odmawia wysłania tekstu poza localhost
+[intent]
+# „Rozumienie intencji” przez model językowy, np. „w poniedziałek… nie, we wtorek” → „we wtorek”.
+# off = wyłączone | local = model na tym komputerze (Ollama, LM Studio) | claude = chmura (opcja)
+mode = "off"
+instructions = "Pisz zwięźle. Nie używaj wykrzykników."   # Twoje zasady stylu
+local_url = "http://localhost:11434"
+local_model = "llama3.1"
+claude_model = "claude-opus-5-5"   # szybciej i taniej: "claude-haiku-4-5"
+timeout = 8.0                      # po tylu sekundach wysyłany jest tekst bez poprawek AI
+examples = 6                       # ile Twoich ostatnich poprawek pokazać modelowi
+allow_remote = false               # zabezpieczenie: tryb local odmawia adresów spoza tego komputera
+# Klucz API Claude NIE jest zapisywany tutaj – dodaj go w Ustawieniach aplikacji
+# (trafia do Menedżera poświadczeń Windows) albo w zmiennej ANTHROPIC_API_KEY.
+
+[profiles]
+# Fragment tytułu okna → dodatkowe zasady stylu dla tej aplikacji
+# "Slack" = "Luźno, bez kropki na końcu ostatniego zdania."
+# "Outlook" = "Formalnie, pełne zdania."
 
 [learning]
 min_occurrences = 2     # ile razy poprawić to samo, żeby reguła się włączyła

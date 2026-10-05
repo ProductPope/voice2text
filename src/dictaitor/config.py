@@ -78,13 +78,19 @@ DEFAULTS: dict[str, Any] = {
     "review": {
         "enabled": False,
     },
-    "polish": {
-        "enabled": False,
-        "url": "http://localhost:11434",
-        "model": "llama3.1",
+    "intent": {
+        # off | local (Ollama, LM Studio, llama.cpp on this computer) | claude (cloud, opt-in)
+        "mode": "off",
         "instructions": "",
+        "local_url": "http://localhost:11434",
+        "local_model": "llama3.1",
+        "claude_model": "claude-opus-5-5",
+        "timeout": 8.0,
+        "examples": 6,  # how many of your recent corrections to show the model
         "allow_remote": False,
     },
+    # Window title fragment -> extra style rules, e.g. "Slack" = "luźno, bez kropki na końcu"
+    "profiles": {},
     "learning": {
         "min_occurrences": 2,
         "min_pause_samples": 12,
@@ -108,7 +114,7 @@ DEFAULTS: dict[str, Any] = {
 
 
 # Sections whose keys are free-form (user phrases), so unknown keys are fine there.
-_FREE_FORM = {("commands",), ("rules", "replacements")}
+_FREE_FORM = {("commands",), ("rules", "replacements"), ("profiles",)}
 
 
 def home_dir() -> Path:
