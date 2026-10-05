@@ -218,6 +218,9 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--debug", action="store_true", help="pokaż surowy wynik Whispera")
     p.set_defaults(func=cmd_listen)
 
+    p = sub.add_parser("app", help="aplikacja w zasobniku (skrót klawiszowy, wpisywanie w okno)")
+    p.set_defaults(func=lambda args, config: __import__("dictaitor.app.ui", fromlist=["main"]).main())
+
     p = sub.add_parser("prepare", help="pobierz model i sprawdź sprzęt oraz mikrofon")
     p.set_defaults(func=cmd_prepare)
 

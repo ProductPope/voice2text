@@ -89,6 +89,14 @@ DEFAULTS: dict[str, Any] = {
         "min_occurrences": 2,
         "min_pause_samples": 12,
     },
+    "app": {
+        "hotkey": "ctrl+alt+d",
+        "correct_hotkey": "ctrl+alt+k",
+        # Seconds between the safe phrase and typing; Esc cancels. 0 = no wait.
+        "abort_seconds": 0.8,
+        "delivery": "auto",  # auto | type | paste | clipboard
+        "paste_over_chars": 300,
+    },
     "audio": {
         "vad": "auto",  # auto | silero | energy
         "energy_threshold": 0.0,

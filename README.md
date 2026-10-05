@@ -143,6 +143,11 @@ a `#nosend` oznacza „nic nie może zostać wysłane” (np. hasło powiedziane
 
 `dictaitor listen --debug` pokazuje surowe słowa Whispera z czasami – przydatne do strojenia.
 
+## Aplikacja w zasobniku (Windows)
+
+`dictaitor app` (albo `windows\6-aplikacja.bat`): `Ctrl+Alt+D` zaczyna dyktowanie, hasło wpisuje tekst
+w okno, w którym byłeś, po 0,8 s na rozmyślenie się (Esc). Szczegóły w [docs/START-WINDOWS.md](docs/START-WINDOWS.md).
+
 ## Struktura
 
 ```
@@ -158,4 +163,5 @@ src/dictaitor/
   polish.py       opcjonalny lokalny LLM
   session.py      spina wszystko; wysyła tylko po haśle
   output.py       schowek / wpisywanie / plik / stdout / komenda
+  app/            aplikacja w zasobniku: controller (logika), win32 (Windows), ui (Qt)
 ```

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import time
 from dataclasses import dataclass, field
 
@@ -31,6 +32,8 @@ class Pipeline:
         self._since_preview = 0
         self.timing = Timing()
         self.on_words = None  # optional debug hook
+        # Guards session access when another thread (the app) also uses it.
+        self.lock = contextlib.nullcontext()
 
     def push(self, frame: np.ndarray) -> Event | None:
         self.timing.audio_seconds += FRAME_SECONDS
@@ -69,4 +72,5 @@ class Pipeline:
         t.per_chunk.append(took)
         if self.on_words:
             self.on_words(words)
-        return self.session.feed(words, chunk.followed_by_pause)
+        with self.lock:
+            return self.session.feed(words, chunk.followed_by_pause)

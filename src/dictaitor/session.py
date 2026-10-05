@@ -44,12 +44,15 @@ class Session:
         store: LearnedStore | None = None,
         sink: Callable[[str], str] | None = None,
         reviewer: Callable[[str], str] | None = None,
+        confirm: bool = False,
     ):
         self.config = config
         self.store = store or LearnedStore.load(home_dir() / "learned.json")
         self.sink = sink or (lambda text: output.send(text, config))
         self.reviewer = reviewer or edit_in_editor
         self.gate = Gate(config)
+        self.confirm = confirm
+        self.pending: str | None = None
         self._new_composer()
 
     def _new_composer(self) -> None:
@@ -64,15 +67,37 @@ class Session:
     def draft(self) -> str:
         return apply_replacements(self.composer.render(), self.rules())
 
+    def reset(self) -> None:
+        """Start a fresh dictation (thresholds re-read, as they may have been learned)."""
+        self.pending = None
+        self._new_composer()
+
     def feed(self, words: list[Word], followed_by_pause: bool = True) -> Event:
+        if self.pending is not None:
+            # Speech during the countdown is ignored; the draft is frozen.
+            return Event(Action.PENDING, self.pending)
         result = self.gate.check(words, followed_by_pause)
         self.composer.add_words(result.words)
         if result.action is Action.CANCEL:
             self._new_composer()
             return Event(Action.CANCEL, "", info="anulowano, szkic wyczyszczony")
         if result.action is Action.SEND:
+            if self.confirm:
+                draft = self.draft()
+                if not draft:
+                    return Event(Action.CONTINUE, "", info="pusty szkic, nic nie wysłano")
+                self.pending = draft
+                return Event(Action.PENDING, draft)
             return self._send()
         return Event(Action.CONTINUE, self.draft())
+
+    def confirm_send(self) -> Event:
+        self.pending = None
+        return self._send()
+
+    def cancel_pending(self) -> None:
+        """Esc during the countdown: nothing is sent, dictation can continue."""
+        self.pending = None
 
     def _send(self) -> Event:
         draft = self.draft()

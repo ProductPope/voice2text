@@ -14,6 +14,9 @@ class Action(Enum):
     CONTINUE = "continue"
     SEND = "send"
     CANCEL = "cancel"
+    # The safe phrase was heard, but the session waits for confirm_send() -
+    # the app's short "change your mind" window (Esc keeps the draft).
+    PENDING = "pending"
 
 
 @dataclass

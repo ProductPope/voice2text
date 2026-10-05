@@ -31,7 +31,7 @@ Python to „silnik”, na którym działa dictAItor.
    małych plików i OneDrive by się „zadławił”.)
 
 4. W środku będzie folder o długiej nazwie (np. `voice2text-claude-brave-knuth-rn94tr`),
-   a w nim folder **`windows`** z pięcioma plikami:
+   a w nim folder **`windows`** z sześcioma plikami:
 
    | Plik | Do czego |
    |---|---|
@@ -40,6 +40,7 @@ Python to „silnik”, na którym działa dictAItor.
    | `3-nagraj-probki.bat` | nagranie próbek do pomiaru jakości |
    | `4-zmierz-jakosc.bat` | pomiar jakości |
    | `5-ustawienia.bat` | zmiana hasła i reguł |
+| `6-aplikacja.bat` | **aplikacja w zasobniku** – skrót klawiszowy i wpisywanie prosto w okno |
 
 ## Krok 3. Zezwól na mikrofon
 
@@ -91,6 +92,28 @@ z aplikacją w zasobniku (kolejny etap).
 
 Zakończenie: zamknij okno albo naciśnij **Ctrl+C**. Niewysłany szkic **nie** jest
 nigdzie wysyłany.
+
+## Krok 5b. Aplikacja w zasobniku (wygodniejsza)
+
+1. Dwuklik **`6-aplikacja.bat`**. Nie pojawi się żadne okno – w prawym dolnym rogu,
+   przy zegarze, pojawi się **kółko** (jeśli go nie widać, kliknij strzałkę **^**).
+   Szare = ładuje model, ciemne = gotowy.
+2. Kliknij tam, gdzie chcesz pisać (np. okno Slacka albo Claude Code).
+3. Naciśnij **Ctrl+Alt+D** – kółko zrobi się **czerwone**, a na dole ekranu pojawi się
+   okienko z tym, co mówisz.
+4. Powiedz wiadomość, a potem **„wyślij teraz”**. Kółko zrobi się pomarańczowe:
+   masz **0,8 sekundy**, żeby nacisnąć **Esc**, jeśli się rozmyślisz.
+5. Tekst zostanie **wpisany w okno, w którym byłeś**. Program nie naciska Entera –
+   wysłanie wiadomości zostaje po Twojej stronie.
+
+Dobrze wiedzieć:
+- Ponowne **Ctrl+Alt+D** w trakcie = przerwij bez wysyłania (szkic odzyskasz z menu
+  pod prawym przyciskiem na kółku).
+- Jeśli w międzyczasie klikniesz inne okno, tekst **nie** zostanie wpisany gdzie indziej –
+  trafi do schowka (Ctrl+V).
+- Wielowierszowy tekst jest wklejany, nie „wpisywany”, żeby nowa linia nie wysłała
+  wiadomości w połowie.
+- Zakończenie: prawy przycisk na kółku → **Zakończ**.
 
 ## Krok 6. Zmiana hasła i własnych reguł (opcjonalnie)
 

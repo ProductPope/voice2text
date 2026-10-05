@@ -69,6 +69,13 @@ allow_remote = false    # zabezpieczenie: odmawia wysłania tekstu poza localhos
 min_occurrences = 2     # ile razy poprawić to samo, żeby reguła się włączyła
 min_pause_samples = 12
 
+[app]
+# Aplikacja w zasobniku (dictaitor app / 6-aplikacja.bat)
+hotkey = "ctrl+alt+d"       # start/stop dyktowania
+abort_seconds = 0.8         # czas na rozmyślenie się po haśle (Esc anuluje); 0 = od razu
+delivery = "auto"           # auto | type (wpisuj) | paste (wklejaj) | clipboard (tylko schowek)
+paste_over_chars = 300      # dłuższe teksty są wklejane zamiast wpisywane
+
 [audio]
 vad = "auto"            # silero (dokładny) | energy (prosty próg głośności) | auto
 energy_threshold = 0.0  # tylko dla vad = "energy"; 0 = automatyczna kalibracja

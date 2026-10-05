@@ -27,7 +27,7 @@ if not exist ".venv\Scripts\python.exe" (
 
 echo  [2/4] Instaluje skladniki (kilka minut, jednorazowo)...
 ".venv\Scripts\python.exe" -m pip install --upgrade pip --quiet || goto :fail
-".venv\Scripts\python.exe" -m pip install -e ".[listen]" --quiet || goto :fail
+".venv\Scripts\python.exe" -m pip install -e ".[app]" --quiet || goto :fail
 
 echo  [3/4] Tworze plik ustawien (jesli go nie ma)...
 if not exist "%APPDATA%\dictaitor\config.toml" ".venv\Scripts\dictaitor.exe" init
@@ -38,7 +38,7 @@ set HF_HUB_DISABLE_SYMLINKS_WARNING=1
 ".venv\Scripts\dictaitor.exe" prepare || goto :fail
 
 echo.
-echo  Gotowe! Teraz uruchom 2-dyktuj.bat
+echo  Gotowe! Uruchom 6-aplikacja.bat (albo 2-dyktuj.bat w oknie konsoli)
 echo.
 pause
 exit /b 0

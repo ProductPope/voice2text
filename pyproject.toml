@@ -13,10 +13,14 @@ dependencies = ["numpy"]
 [project.optional-dependencies]
 listen = ["faster-whisper>=1.0", "sounddevice", "pyperclip"]
 type = ["pynput"]
+app = ["faster-whisper>=1.0", "sounddevice", "pyperclip", "PySide6>=6.6"]
 dev = ["pytest"]
 
 [project.scripts]
 dictaitor = "dictaitor.cli:main"
+
+[project.gui-scripts]
+dictaitor-app = "dictaitor.app.ui:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

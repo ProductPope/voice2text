@@ -172,7 +172,7 @@ Wszystko w `%APPDATA%\dictaitor\` jako czytelne pliki (TOML/JSON), z eksportem/i
 |---|---|---|
 | M0 ✅ | Prototyp rdzenia (CLI): hasło, pauzy, komendy, uczenie | 27 testów, `dictaitor simulate` |
 | M1 ✅ | Rdzeń produkcyjny: Silero VAD, podgląd na żywo, filtr halucynacji, hotwords, autodobór modelu, `dictaitor eval`, refaktor configu (walidacja, `%APPDATA%`) | testy + zestaw ewaluacyjny, 0 fałszywych wysyłek |
-| M2 | Aplikacja Windows MVP: tray, skrót, okienko szkicu, wpisywanie w zapamiętane okno, ustawienia, test hasła | dyktujesz do Slacka/przeglądarki na co dzień |
+| M2 🟡 | Aplikacja Windows MVP: tray, skrót, okienko szkicu, wpisywanie w zapamiętane okno, ustawienia, test hasła | dyktujesz do Slacka/przeglądarki na co dzień |
 | M3 | Uczenie w UI: „popraw ostatni”, ekran reguł, profile stylu, eksport/import | reguły powstają bez edytowania plików |
 | M4 | Intencje: lokalny LLM + opcjonalna chmura, strażnik zmian, budżet opóźnień | autopoprawki rozumiane poprawnie w zestawie ewaluacyjnym |
 | M5 | Wydanie 0.9 beta: instalator, podpis, CI, dokumentacja EN/PL, nazwa | instalacja na czystym Windows bez Pythona |
@@ -208,4 +208,27 @@ Brak – wszystkie decyzje do M1 podjęte.
   testowym): WER 0%, 0 fałszywych wysyłek, ~2 s od hasła do wysyłki na 4 rdzeniach z `small`.
 - **Do zrobienia przez Ciebie:** nagrać 20–30 polskich próbek (`dictaitor record`) i uruchomić
   `dictaitor eval` – to pierwszy prawdziwy pomiar na Twoim głosie i sprzęcie.
+
+## 14. Stan M2 (w trakcie – czeka na test na Windows)
+
+Zrobione:
+- `dictaitor app` / `windows/6-aplikacja.bat`: ikona w zasobniku (kolor = stan), okienko
+  szkicu na dole ekranu, które nie zabiera fokusu, podgląd na żywo.
+- Skrót `Ctrl+Alt+D` przez `RegisterHotKey`; zajęty → automatycznie następny wolny
+  z powiadomieniem; skróty AltGr (ą, ć, ę, ł, ń, ó, ś, ź, ż) odrzucane.
+- Po haśle 0,8 s odliczania, Esc (rejestrowany tylko na ten czas) zatrzymuje wysyłkę
+  i pozwala dyktować dalej.
+- Dostarczenie: wpisywanie (SendInput Unicode) do zapamiętanego okna; wklejanie dla
+  tekstu wielowierszowego / długiego (schowek przywracany); schowek, gdy okno się
+  zmieniło, okno jest „jako administrator” albo wpisywanie się nie udało.
+- Mikrofon otwarty tylko w trakcie dyktowania; jedna instancja aplikacji naraz;
+  „Skopiuj ostatni niewysłany szkic” w menu.
+- Testy: 15 testów logiki aplikacji, test okienka (bez ekranu), test API Windows w CI
+  (skrót + schowek z polskimi znakami); pełny przebieg aplikacji z nagraniem zamiast
+  mikrofonu – OK (na Linuksie, ścieżka schowka).
+
+Do zrobienia w M2:
+- **Test ręczny na Windows** (wpisywanie do Notatnika, Slacka, przeglądarki, Windows
+  Terminal z Claude Code; okno administratora; zmiana okna w trakcie).
+- Okno ustawień zamiast Notatnika, test hasła (3× wypowiedz), autostart z Windows.
 

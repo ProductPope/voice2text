@@ -202,3 +202,21 @@ def test_polish_refuses_remote_url():
     config = cfg(polish={"enabled": True, "url": "https://api.example.com"})
     with pytest.raises(PolishError):
         polish("tekst", config)
+
+
+def test_confirm_mode_waits_and_can_be_cancelled():
+    sent = []
+    config = cfg()
+    session = Session(config, LearnedStore(), sink=lambda t: sent.append(t) or "ok", confirm=True)
+    for words in parse_script("Raport gotowy [1.0] wyślij teraz", 0.6):
+        event = session.feed(words)
+    assert event.action is Action.PENDING and event.draft == "Raport gotowy."
+    assert sent == []
+    # Speech during the countdown is ignored.
+    session.feed(parse_script("i jeszcze coś", 0.6)[0])
+    session.cancel_pending()
+    assert session.draft() == "Raport gotowy."
+    for words in parse_script("[1.0] wyślij teraz", 0.6):
+        session.feed(words)
+    assert session.confirm_send().sent == "Raport gotowy."
+    assert sent == ["Raport gotowy."]
