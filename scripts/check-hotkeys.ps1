@@ -6,6 +6,7 @@
 # Limitation: programs that grab keys via keyboard hooks (some games, macro
 # tools) and shortcuts reserved by Windows itself (Win+L etc.) are not detected,
 # so after picking one, press it once in a normal window to be sure.
+# Ctrl+Alt+<letter> equals AltGr+<letter> on Polish layouts: avoid a, c, e, l, n, o, s, x, z.
 
 Add-Type @"
 using System;
@@ -24,7 +25,7 @@ $candidates = @(
     @{ Name = "Ctrl+Alt+Spacja";  Mods = $CTRL -bor $ALT;   Vk = 0x20 },
     @{ Name = "Ctrl+Shift+Spacja"; Mods = $CTRL -bor $SHIFT; Vk = 0x20 },
     @{ Name = "Ctrl+Alt+D";       Mods = $CTRL -bor $ALT;   Vk = 0x44 },
-    @{ Name = "Ctrl+Alt+Z (popraw ostatni)"; Mods = $CTRL -bor $ALT; Vk = 0x5A },
+    @{ Name = "Ctrl+Alt+K (popraw ostatni)"; Mods = $CTRL -bor $ALT; Vk = 0x4B },
     @{ Name = "Win+Alt+D";        Mods = $WIN -bor $ALT;    Vk = 0x44 },
     @{ Name = "F9";               Mods = 0;                 Vk = 0x78 }
 )

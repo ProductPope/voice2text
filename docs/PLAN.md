@@ -17,7 +17,7 @@
 | Licencja | **MIT** |
 | Nazwa | **dictAItor** (pakiet/komenda: `dictaitor`) – „Ty dyktujesz. On czeka na rozkaz.” |
 | Po haśle | **0,8 s na rozmyślenie się** – Esc przerywa, potem wpisanie |
-| Skrót | `Ctrl+Alt+Spacja`, jeśli wolny (sprawdza `scripts/check-hotkeys.ps1` i aplikacja przy starcie) |
+| Skrót | **`Ctrl+Alt+D`** (dyktuj); „popraw ostatni”: **`Ctrl+Alt+K`** (korekta) |
 | Chmura dla intencji | **Claude API** (Anthropic) |
 | CLI | zostaje jako narzędzie do testów i dla zaawansowanych, bez dodatkowej pracy |
 
@@ -57,9 +57,14 @@ Warstwa Windows trafia do `src/dictaitor/app/`, a kod specyficzny dla systemu do
 - **Okno z uprawnieniami admina** (UIPI blokuje wpisywanie): wykrywamy i przechodzimy
   na schowek z komunikatem, zamiast „cichej porażki”.
 - **Globalny skrót**: `RegisterHotKey` przez ctypes (bez hooków klawiatury, które
-  wyglądają podejrzanie dla antywirusów). Domyślnie `Ctrl+Alt+Spacja`, konfigurowalny.
+  wyglądają podejrzanie dla antywirusów). Domyślnie `Ctrl+Alt+D`, konfigurowalny
+  (u autora `Ctrl+Alt+Spacja` okazał się zajęty).
   Przy starcie aplikacja próbuje go zarejestrować; jeśli jest zajęty, proponuje
-  następny wolny z listy (`Ctrl+Shift+Spacja`, `Ctrl+Alt+D`, `F9`) zamiast cicho nie działać.
+  następny wolny z listy (`F9`, `Ctrl+Shift+Spacja`) zamiast cicho nie działać.
+  **Polska klawiatura: `Ctrl+Alt` = `AltGr`.** Skróty `Ctrl+Alt+A/C/E/L/N/O/S/X/Z`
+  zablokowałyby wpisywanie ą, ć, ę, ł, ń, ó, ś, ź, ż – aplikacja ich nie proponuje
+  i ostrzega, jeśli ktoś ustawi je ręcznie. `Ctrl+Shift+Spacja` jest wolny systemowo,
+  ale zajęty w wielu edytorach (podpowiedzi w VS Code/JetBrains), więc tylko jako zapas.
   Ten sam skrót w trakcie dyktowania = przerwij (bez wysyłania).
 - **Terminale (Claude Code, Windows Terminal)**: wpisany znak nowej linii = Enter =
   wysłanie promptu w połowie. Dla okien terminala tekst wielowierszowy idzie przez
@@ -98,7 +103,7 @@ Warstwa Windows trafia do `src/dictaitor/app/`, a kod specyficzny dla systemu do
 | Tempo pauz | te same edycje | dopasowanie progów przecinka/kropki (jest w prototypie) |
 | Styl | profile + Twoje poprawki | instrukcje stylu + kilka ostatnich par „szkic → wersja ostateczna” jako przykłady dla LLM |
 
-„**Popraw ostatni**” (skrót, np. `Ctrl+Alt+Z`): otwiera ostatnio wysłany tekst w okienku.
+„**Popraw ostatni**” (skrót `Ctrl+Alt+K`): otwiera ostatnio wysłany tekst w okienku.
 Poprawiasz, zapisujesz – aplikacja uczy się z różnicy (i opcjonalnie wpisuje poprawioną
 wersję jeszcze raz). Dzięki temu nie ma kroku zatwierdzania przy każdej wysyłce.
 
@@ -186,4 +191,4 @@ Wszystko w `%APPDATA%\dictaitor\` jako czytelne pliki (TOML/JSON), z eksportem/i
 
 ## 12. Otwarte pytania
 
-1. Wynik `scripts/check-hotkeys.ps1` na Twoim komputerze.
+Brak – wszystkie decyzje do M1 podjęte.
