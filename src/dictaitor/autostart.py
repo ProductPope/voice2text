@@ -34,7 +34,8 @@ def set_enabled(enabled: bool) -> None:
         raise OSError("autostart jest dostępny tylko na Windows")
     import winreg
 
-    with winreg.OpenKey(winreg.HKEY_CURRENT_USER, RUN_KEY, 0, winreg.KEY_SET_VALUE) as key:
+    # CreateKeyEx also opens the key; it may not exist yet on a fresh user profile.
+    with winreg.CreateKeyEx(winreg.HKEY_CURRENT_USER, RUN_KEY, 0, winreg.KEY_SET_VALUE) as key:
         if enabled:
             winreg.SetValueEx(key, VALUE, 0, winreg.REG_SZ, command())
         else:
