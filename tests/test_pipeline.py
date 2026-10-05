@@ -1,14 +1,14 @@
 import numpy as np
 import pytest
 
-from voice2text.audio import EnergyChunker
-from voice2text.composer import Composer, Word
-from voice2text.config import Config
-from voice2text.gate import Action, Gate
-from voice2text.learning import LearnedStore, apply_replacements
-from voice2text.polish import PolishError, polish
-from voice2text.script import parse_script
-from voice2text.session import Session
+from dictaitor.audio import EnergyChunker
+from dictaitor.composer import Composer, Word
+from dictaitor.config import Config
+from dictaitor.gate import Action, Gate
+from dictaitor.learning import LearnedStore, apply_replacements
+from dictaitor.polish import PolishError, polish
+from dictaitor.script import parse_script
+from dictaitor.session import Session
 
 
 def cfg(**override):

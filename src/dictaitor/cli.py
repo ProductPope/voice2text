@@ -1,4 +1,4 @@
-"""Command line: `v2t listen`, `v2t simulate`, `v2t learn`, `v2t rules`, `v2t init`."""
+"""Command line: `dictaitor listen`, `dictaitor simulate`, `dictaitor learn`, `dictaitor rules`, `dictaitor init`."""
 
 from __future__ import annotations
 
@@ -119,14 +119,14 @@ def cmd_init(args, config: Config) -> int:
         print(f"{target} już istnieje (użyj --force, żeby nadpisać).")
         return 1
     target.parent.mkdir(parents=True, exist_ok=True)
-    with resources.as_file(resources.files("voice2text") / "config.example.toml") as src:
+    with resources.as_file(resources.files("dictaitor") / "config.example.toml") as src:
         shutil.copy(src, target)
     print(f"Utworzono {target}. Ustaw tam swoje hasło i reguły.")
     return 0
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(prog="v2t", description="Lokalne dyktowanie z hasłem wysyłki.")
+    parser = argparse.ArgumentParser(prog="dictaitor", description="Lokalne dyktowanie z hasłem wysyłki.")
     parser.add_argument("--config", type=Path, help="ścieżka do config.toml")
     sub = parser.add_subparsers(dest="cmd", required=True)
 

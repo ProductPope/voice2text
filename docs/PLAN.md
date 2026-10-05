@@ -1,4 +1,4 @@
-# voice2text – plan do wersji 1.0 (open source)
+# dictAItor – plan do wersji 1.0 (open source)
 
 ## 1. Ustalenia
 
@@ -15,7 +15,7 @@
 | Intencje | **Lokalny LLM domyślnie**, chmura jako świadoma, jawnie oznaczona opcja |
 | Stack | **Python + PySide6**, faster-whisper, PyInstaller + Inno Setup |
 | Licencja | **MIT** |
-| Nazwa | propozycja: **Dyktator** – „Ty dyktujesz, on czeka na rozkaz” (do potwierdzenia) |
+| Nazwa | **dictAItor** (pakiet/komenda: `dictaitor`) – „Ty dyktujesz. On czeka na rozkaz.” |
 | Po haśle | **0,8 s na rozmyślenie się** – Esc przerywa, potem wpisanie |
 | Skrót | `Ctrl+Alt+Spacja`, jeśli wolny (sprawdza `scripts/check-hotkeys.ps1` i aplikacja przy starcie) |
 | Chmura dla intencji | **Claude API** (Anthropic) |
@@ -42,9 +42,9 @@ Zasada nadrzędna: **zero fałszywych wysyłek**. Lepiej raz nie zareagować na 
 └──────────────────────────────────────────────────────────────┘
 ```
 
-Rdzeń (`src/voice2text/`) już istnieje w prototypie i zostaje niezależny od GUI.
-Warstwa Windows trafia do `src/voice2text/app/`, a kod specyficzny dla systemu do
-`src/voice2text/platform/windows.py` (żeby później dodać `linux.py`/`macos.py`).
+Rdzeń (`src/dictaitor/`) już istnieje w prototypie i zostaje niezależny od GUI.
+Warstwa Windows trafia do `src/dictaitor/app/`, a kod specyficzny dla systemu do
+`src/dictaitor/platform/windows.py` (żeby później dodać `linux.py`/`macos.py`).
 
 ### Kluczowe decyzje techniczne
 
@@ -103,7 +103,7 @@ Poprawiasz, zapisujesz – aplikacja uczy się z różnicy (i opcjonalnie wpisuj
 wersję jeszcze raz). Dzięki temu nie ma kroku zatwierdzania przy każdej wysyłce.
 
 Okienko „Czego się nauczyłem”: lista reguł z licznikami, możliwość usunięcia/edycji.
-Wszystko w `%APPDATA%\voice2text\` jako czytelne pliki (TOML/JSON), z eksportem/importem.
+Wszystko w `%APPDATA%\dictaitor\` jako czytelne pliki (TOML/JSON), z eksportem/importem.
 
 ## 5. Intencje (LLM)
 
@@ -138,13 +138,13 @@ Wszystko w `%APPDATA%\voice2text\` jako czytelne pliki (TOML/JSON), z eksportem/
 - **Zestaw ewaluacyjny**: ~30–50 Twoich nagrań z wzorcowym tekstem (lokalnie, nie
   w repo) + syntetyczny zestaw publiczny. Metryki: WER, F1 interpunkcji,
   **liczba fałszywych wysyłek (musi być 0)**, pominięte hasła, opóźnienie.
-  Skrypt `v2t eval` porównuje wersje i modele.
+  Skrypt `dictaitor eval` porównuje wersje i modele.
 - **CI (GitHub Actions)**: testy na `windows-latest` i `ubuntu-latest`, ruff, mypy;
   build instalatora na tagu.
 
 ## 8. Dystrybucja
 
-- PyInstaller (onedir) + Inno Setup → `voice2text-setup.exe`. Model pobierany przy
+- PyInstaller (onedir) + Inno Setup → `dictaitor-setup.exe`. Model pobierany przy
   pierwszym uruchomieniu z paskiem postępu (instalator ~150–250 MB bez modelu).
 - „Pakiet GPU” (biblioteki CUDA ~1 GB) jako osobne, opcjonalne pobranie.
 - Podpis kodu przez **SignPath.io** (darmowy dla OSS) – inaczej SmartScreen straszy.
@@ -156,21 +156,17 @@ Wszystko w `%APPDATA%\voice2text\` jako czytelne pliki (TOML/JSON), z eksportem/
   szablony zgłoszeń, CHANGELOG, wersjonowanie SemVer.
 - UI i komunikaty: angielski + polski (Qt `tr`), komendy głosowe per język
   (domyślne PL i EN) – żeby projekt był użyteczny poza Polską.
-- Nazwa – propozycje (wolne na PyPI w dniu sprawdzenia):
-  - **Dyktator** (rekomendacja) – dyktujesz, a on nic nie robi bez Twojego rozkazu.
-    Po angielsku czyta się jak „dictator”, i o to chodzi.
-    Hasło: *„Ty dyktujesz. On czeka na rozkaz.”* / *„You dictate. It waits for your word.”*
-  - **Słowo Daję** – nic nie wychodzi, dopóki nie dasz słowa. Świetne po polsku, nieczytelne dla reszty świata.
-  - **Hold My Words** – parafraza „hold my beer”: trzyma Twoje słowa do hasła.
-  - **Gaduła** – dla tych, co dużo mówią.
-  - **Ehm** – bo wycina Twoje „ehm” i „yyy”.
+- Nazwa: **dictAItor** – „dictator” z AI w środku. Wolna na PyPI (`dictaitor`).
+  Hasło: *„Ty dyktujesz. On czeka na rozkaz.”* / *„You dictate. It waits for your word.”*
+  Do zrobienia przed publikacją: zmiana nazwy repozytorium na GitHubie
+  (Settings → Repository name), sprawdzenie winget.
 
 ## 10. Kamienie milowe
 
 | # | Zakres | Gotowe, gdy |
 |---|---|---|
-| M0 ✅ | Prototyp rdzenia (CLI): hasło, pauzy, komendy, uczenie | 27 testów, `v2t simulate` |
-| M1 | Rdzeń produkcyjny: Silero VAD, podgląd na żywo, filtr halucynacji, hotwords, autodobór modelu, `v2t eval`, refaktor configu (walidacja, `%APPDATA%`) | testy + zestaw ewaluacyjny, 0 fałszywych wysyłek |
+| M0 ✅ | Prototyp rdzenia (CLI): hasło, pauzy, komendy, uczenie | 27 testów, `dictaitor simulate` |
+| M1 | Rdzeń produkcyjny: Silero VAD, podgląd na żywo, filtr halucynacji, hotwords, autodobór modelu, `dictaitor eval`, refaktor configu (walidacja, `%APPDATA%`) | testy + zestaw ewaluacyjny, 0 fałszywych wysyłek |
 | M2 | Aplikacja Windows MVP: tray, skrót, okienko szkicu, wpisywanie w zapamiętane okno, ustawienia, test hasła | dyktujesz do Slacka/przeglądarki na co dzień |
 | M3 | Uczenie w UI: „popraw ostatni”, ekran reguł, profile stylu, eksport/import | reguły powstają bez edytowania plików |
 | M4 | Intencje: lokalny LLM + opcjonalna chmura, strażnik zmian, budżet opóźnień | autopoprawki rozumiane poprawnie w zestawie ewaluacyjnym |
@@ -190,5 +186,4 @@ Wszystko w `%APPDATA%\voice2text\` jako czytelne pliki (TOML/JSON), z eksportem/
 
 ## 12. Otwarte pytania
 
-1. Akceptacja nazwy (po niej: zmiana nazwy pakietu, repozytorium, sprawdzenie GitHub/winget).
-2. Wynik `scripts/check-hotkeys.ps1` na Twoim komputerze.
+1. Wynik `scripts/check-hotkeys.ps1` na Twoim komputerze.

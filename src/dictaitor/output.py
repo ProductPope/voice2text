@@ -19,7 +19,7 @@ def send(text: str, config: Config) -> str:
         print(text, flush=True)
         return "wypisano na stdout"
     if mode == "file":
-        path = Path(cfg["file"] or "voice2text.txt").expanduser()
+        path = Path(cfg["file"] or "dictaitor.txt").expanduser()
         with path.open("a", encoding="utf-8") as fh:
             fh.write(f"--- {datetime.now():%Y-%m-%d %H:%M:%S}\n{text}\n")
         return f"dopisano do {path}"

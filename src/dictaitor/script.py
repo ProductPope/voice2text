@@ -1,4 +1,4 @@
-"""Text scripts that stand in for the microphone (for `v2t simulate` and tests).
+"""Text scripts that stand in for the microphone (for `dictaitor simulate` and tests).
 
 Words are spoken one after another; `[1.2]` inserts a 1.2 s pause. A pause
 at least `split_silence` long ends a chunk, exactly as the live VAD would.

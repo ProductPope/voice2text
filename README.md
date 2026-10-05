@@ -1,4 +1,6 @@
-# voice2text
+# dictAItor
+
+*Ty dyktujesz. On czeka na rozkaz.*
 
 Lokalne dyktowanie, które:
 
@@ -15,8 +17,8 @@ Lokalne dyktowanie, które:
 ```bash
 pip install -e ".[listen]"      # faster-whisper, mikrofon, schowek
 pip install -e ".[type]"        # opcjonalnie: wpisywanie w aktywne okno
-v2t init                        # tworzy ~/.config/voice2text/config.toml
-v2t listen
+dictaitor init                        # tworzy ~/.config/dictaitor/config.toml
+dictaitor listen
 ```
 
 Przy pierwszym uruchomieniu model Whispera jest pobierany jednorazowo z Hugging Face.
@@ -75,11 +77,11 @@ Pozdrawiam.
    - gdzie zostawiłeś kropkę/przecinek, a gdzie usunąłeś → progi pauz dopasowują się
      do Twojego tempa (np. jeśli mówisz wolno, 1,2 s przestaje kończyć zdanie).
    - pusty plik = anulowanie.
-3. **Ręcznie**: `v2t learn "ajfon" "iPhone"`, `v2t forget "ajfon"`.
-4. Podgląd wszystkiego: `v2t rules`.
+3. **Ręcznie**: `dictaitor learn "ajfon" "iPhone"`, `dictaitor forget "ajfon"`.
+4. Podgląd wszystkiego: `dictaitor rules`.
 
-Nauczone dane leżą w `~/.config/voice2text/learned.json` (zwykły JSON, możesz go edytować
-lub usunąć). Katalog zmienisz zmienną `VOICE2TEXT_HOME`.
+Nauczone dane leżą w `~/.config/dictaitor/learned.json` (zwykły JSON, możesz go edytować
+lub usunąć). Katalog zmienisz zmienną `DICTAITOR_HOME`.
 
 ## Intencje (opcjonalnie, lokalny LLM)
 
@@ -101,7 +103,7 @@ Wysyłka do adresu innego niż `localhost` jest zablokowana, dopóki jawnie nie 
 `[1.2]` oznacza 1,2 s ciszy:
 
 ```bash
-v2t simulate --output stdout "Zrobimy to w [2.0] poniedziałek [1.0] wyślij teraz"
+dictaitor simulate --output stdout "Zrobimy to w [2.0] poniedziałek [1.0] wyślij teraz"
 # Zrobimy to w poniedziałek.
 ```
 
@@ -120,12 +122,12 @@ pip install -e ".[dev]" && pytest
 | `audio.energy_threshold` | auto | ustaw np. `0.02`, jeśli szum tła jest brany za mowę |
 | `text.continuations` | spójniki, przyimki | słowa, po których pauza nigdy nie kończy zdania |
 
-`v2t listen --debug` pokazuje surowe słowa Whispera z czasami – przydatne do strojenia.
+`dictaitor listen --debug` pokazuje surowe słowa Whispera z czasami – przydatne do strojenia.
 
 ## Struktura
 
 ```
-src/voice2text/
+src/dictaitor/
   audio.py        mikrofon + podział na fragmenty po ciszy
   transcriber.py  faster-whisper (lokalnie)
   gate.py         bezpieczne hasło / anulowanie

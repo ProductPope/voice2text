@@ -97,11 +97,11 @@ DEFAULTS: dict[str, Any] = {
 
 
 def home_dir() -> Path:
-    env = os.environ.get("VOICE2TEXT_HOME")
+    env = os.environ.get("DICTAITOR_HOME")
     if env:
         return Path(env).expanduser()
     base = os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config"
-    return Path(base) / "voice2text"
+    return Path(base) / "dictaitor"
 
 
 def _merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:
