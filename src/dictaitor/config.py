@@ -88,7 +88,7 @@ DEFAULTS: dict[str, Any] = {
         "mode": "off",
         "instructions": "",
         "local_url": "http://localhost:11434",
-        "local_model": "llama3.1",
+        "local_model": "qwen2.5:7b",
         "claude_model": "claude-opus-5-5",
         "timeout": 8.0,
         "examples": 6,  # how many of your recent corrections to show the model

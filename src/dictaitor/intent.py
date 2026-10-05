@@ -16,12 +16,13 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import urllib.request
 from dataclasses import dataclass
 from urllib.parse import urlparse
 
 from .config import Config
-from .textutil import norm
+from .textutil import norm, similarity
 
 LOCAL_HOSTS = {"localhost", "127.0.0.1", "::1"}
 KEYRING_SERVICE = "dictaitor"
@@ -86,7 +87,39 @@ def suspicious(draft: str, result: str) -> str:
     new = [w for w in r if w not in known]
     if len(new) > max(3, len(r) // 4):
         return "model zmienił zbyt wiele słów"
+    # A legitimate fix turns a misheard word into a close variant ("wy" -> "w",
+    # "stegingu" -> "stagingu"). A word with no look-alike in the draft was invented
+    # (measured: a local model wrote "wyciągnemy" into a sentence that never had it).
+    for word in new:
+        if len(word) >= 4 and max((similarity(word, k) for k in known), default=0.0) < 0.65:
+            return f"model dopisał słowo „{word}”"
+    # "w poniedziałek, nie, we wtorek": the words after the correction are what you
+    # meant. A model that kept the old option instead (measured with a 7B local
+    # model) would reverse your message, so its result is not used.
+    kept = set(r)
+    for meant in corrected_words(draft):
+        if meant not in kept:
+            return f"model pominął Twoją poprawkę („{meant}”)"
     return ""
+
+
+# Phrases that introduce a self-correction. "nie" counts only after a comma
+# (", nie we wtorek"), otherwise "nie wiem" would look like a correction.
+_CORRECTION = re.compile(
+    r"(?:,\s*nie\b|\bto znaczy\b|\bznaczy\b|\ba właściwie\b|\bprzepraszam\b|\balbo nie\b|\bsorry\b)[\s,.:;–-]*",
+    re.IGNORECASE,
+)
+
+
+def corrected_words(draft: str) -> list[str]:
+    """First content word after each self-correction marker, normalised."""
+    out = []
+    for m in _CORRECTION.finditer(draft):
+        following = norm(draft[m.end() :]).split()
+        content = [w for w in following if len(w) >= 3 and w != "nie"]
+        if content:
+            out.append(content[0])
+    return out
 
 
 def _clean(text: str) -> str:
@@ -188,6 +221,21 @@ def call_claude(system: str, user: str, cfg: dict, client=None) -> str:
 
 
 BACKENDS = {"local": call_local, "claude": call_claude}
+
+
+def warm_up(config: Config) -> None:
+    """Load the local model while you speak, so the first clean-up isn't slow.
+
+    Measured on CPU: a cold 3-7B model needs 12-21 s to answer the first time,
+    which would blow the timeout right after the safe phrase.
+    """
+    cfg = config["intent"]
+    if cfg["mode"] != "local":
+        return
+    try:
+        call_local("Reply with OK.", "OK", {**cfg, "timeout": 120})
+    except Exception:
+        pass  # the real request will report the problem
 
 
 def refine(draft: str, config: Config, examples: list[tuple[str, str]], window_title: str = "") -> Refined:

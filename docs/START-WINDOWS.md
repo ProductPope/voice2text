@@ -141,13 +141,19 @@ Bez AI dictAItor zapisuje dokładnie to, co powiedziałeś (z interpunkcją z pa
 Z AI rozumie też poprawki w locie: „w poniedziałek… nie, we wtorek” → „we wtorek”,
 usuwa powtórzenia i stosuje Twoje zasady stylu. Masz dwie drogi:
 
-**A. Lokalnie (nic nie wychodzi z komputera, potrzeba ok. 8 GB wolnej pamięci RAM)**
+**A. Lokalnie – eksperymentalne (nic nie wychodzi z komputera, potrzeba min. 8 GB RAM)**
+
+> Uczciwie: w naszych testach małe modele lokalne (3–7B) po polsku czasem psuły słowa
+> albo wybierały złą wersję przy autopoprawce. Strażnik w dictAItor wtedy odrzuca ich
+> wynik i wysyła Twój tekst bez zmian – ale korzyść bywa niewielka. Na zwykłym
+> procesorze jedna poprawka trwa 4–8 s. Lepiej działa z kartą graficzną i większym modelem.
+
 1. Zainstaluj **Ollama** ze strony https://ollama.com (Download → Windows).
-2. Otwórz PowerShell (Start → wpisz „PowerShell”) i wpisz: `ollama pull llama3.1`
+2. Otwórz PowerShell (Start → wpisz „PowerShell”) i wpisz: `ollama pull qwen2.5:7b`
    – pobierze się model (ok. 5 GB). Możesz też spróbować polskiego modelu Bielik,
    jeśli jest dostępny w bibliotece Ollama.
 3. W dictAItor: prawy przycisk na kółku → **Ustawienia…** → *Porządkowanie przez AI* →
-   **Model na tym komputerze**, w polu „Model lokalny” wpisz nazwę modelu (np. `llama3.1`).
+   **Model na tym komputerze**, w polu „Model lokalny” wpisz nazwę modelu (np. `qwen2.5:7b`).
 
 **B. Claude (chmura – najlepsza jakość, tekst trafia do Anthropic)**
 1. Załóż klucz API na https://console.anthropic.com (→ API Keys). To osobne konto

@@ -301,7 +301,7 @@ class SettingsDialog(QDialog):
                 "intent": {
                     "mode": mode,
                     "instructions": self.instructions.text().strip(),
-                    "local_model": self.local_model.text().strip() or "llama3.1",
+                    "local_model": self.local_model.text().strip() or "qwen2.5:7b",
                     "claude_model": self.claude_model.currentData(),
                 },
             },

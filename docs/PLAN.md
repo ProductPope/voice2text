@@ -314,3 +314,24 @@ Wnioski i decyzje:
 - Uwaga: syntetyczny głos zniekształca część głosek (np. „Spotkajmy” → „Totkajmy”
   nawet przy transkrypcji całego pliku) – prawdziwe nagrania użytkownika są niezbędne.
 
+## 19. Pomiar kroku AI na prawdziwych modelach lokalnych (Ollama, CPU 4 rdzenie)
+
+Szkice wzięte z pomiaru polskiej mowy (z prawdziwymi błędami Whispera):
+
+| Szkic | qwen2.5:3b | qwen2.5:7b |
+|---|---|---|
+| „Spotkanie w poniedziałek, nie we wtorek o 10.” | „Spotkanie w wtorek o 10.” (błąd gramatyczny) | „Spotkanie w poniedziałek o 10.” – **zła wersja!** |
+| „Zrobimy to wy. Poniedziałek rano.” | „Wyrobimy to w poniedziałek rano.” (popsute słowo) | dopisał „wyciągnemy” |
+| „Wyślę ci raport, to znaczy, wyślę ci prezentację…” | bez zmian | „Wyślę ci prezentację jutro rano.” ✔ |
+| „…na stagingu i i odpal testy…” | „odlap” (popsute) | ✔ |
+| Czas (po załadowaniu / pierwsze wywołanie) | ~2–4 s / 12 s | ~4–8 s / 21 s |
+
+Zmiany po pomiarze:
+- Strażnik odrzuca słowa bez odpowiednika w szkicu („wyciągnemy”) i **wynik, który gubi
+  Twoją autopoprawkę** (słowo po „…, nie”, „to znaczy”, „a właściwie”…) – wtedy wysyłany
+  jest szkic, w którym poprawka jest widoczna.
+- Model lokalny jest rozgrzewany w chwili naciśnięcia skrótu (ładowanie 12–21 s
+  przestaje wypadać po haśle).
+- Tryb lokalny opisany jako eksperymentalny; domyślny model lokalny: `qwen2.5:7b`.
+- Claude (tryb chmurowy) nie był testowany na żywo – brak klucza w środowisku testowym.
+

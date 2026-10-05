@@ -175,3 +175,31 @@ def test_session_sends_refined_text_with_profile(monkeypatch):
     for words in parse_script("Raport raport gotowy [1.0] wyślij teraz", 0.6):
         session.feed(words)
     assert sent == ["Raport gotowy."] and "Luźno." in seen["system"]
+
+
+def test_guard_rejects_invented_word_but_accepts_fixes():
+    # Real outputs of a local 7B model on Whisper drafts (measured).
+    assert "dopisał" in intent.suspicious("Zrobimy to wy. Poniedziałek rano.", "Zrobimy to wyciągnemy to poniedziałek rano.")
+    assert intent.suspicious("Zrobimy to wy. Poniedziałek rano.", "Zrobimy to w poniedziałek rano.") == ""
+    assert intent.suspicious(
+        "Wyślę ci raport, to znaczy, wyślę ci prezentację jutro rano.", "Wyślę ci prezentację jutro rano."
+    ) == ""
+    assert intent.suspicious(
+        "Zrób deploy na stegingu i i odpal testy.", "Zrób deploy na stagingu i odpal testy."
+    ) == ""
+
+
+def test_warm_up_hits_local_server(local_server):
+    intent.warm_up(cfg(mode="local", local_url=local_server))
+    assert _Handler.seen and _Handler.seen[-1][0] == "/v1/chat/completions"
+    intent.warm_up(cfg(mode="off"))  # no-op
+
+
+def test_guard_protects_self_corrections():
+    draft = "Spotkanie w poniedziałek, nie we wtorek o 10."
+    assert intent.corrected_words(draft) == ["wtorek"]
+    # measured: a local 7B model kept the wrong day
+    assert "poprawkę" in intent.suspicious(draft, "Spotkanie w poniedziałek o 10.")
+    assert intent.suspicious(draft, "Spotkanie we wtorek o 10.") == ""
+    assert intent.corrected_words("Nie wiem, czy zdążę.") == []
+    assert intent.corrected_words("Wyślę ci raport, to znaczy, prezentację.") == ["prezentacje"]

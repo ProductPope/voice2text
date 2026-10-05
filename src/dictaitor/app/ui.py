@@ -121,6 +121,11 @@ class Engine(QObject):
             self.session.reset()
             self.session.context = context
         self._listening.set()
+        if self.config["intent"]["mode"] == "local":
+            from ..intent import warm_up
+
+            # Load the local model while you speak, not after the safe phrase.
+            threading.Thread(target=warm_up, args=(self.config,), daemon=True, name="dictaitor-warmup").start()
         self._thread = threading.Thread(target=self._listen, daemon=True, name="dictaitor-mic")
         self._thread.start()
 
