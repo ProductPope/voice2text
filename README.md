@@ -14,6 +14,10 @@ Lokalne dyktowanie, które:
 
 ## Instalacja
 
+**Windows, bez wpisywania komend:** zobacz [docs/START-WINDOWS.md](docs/START-WINDOWS.md).
+
+Ręcznie:
+
 ```bash
 pip install -e ".[listen]"      # faster-whisper, mikrofon, schowek
 pip install -e ".[type]"        # opcjonalnie: wpisywanie w aktywne okno

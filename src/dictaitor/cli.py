@@ -42,6 +42,8 @@ def cmd_listen(args, config: Config) -> int:
     choice = resolve_model(config)
     print(f"Ładuję model {choice.model} ({choice.device}, {choice.compute_type}) – lokalnie…", flush=True)
     transcriber = Transcriber(config, store.vocabulary(config["learning"]["min_occurrences"]))
+    if transcriber.warning:
+        print(transcriber.warning)
     session = Session(config, store)
     pipe = Pipeline(session, transcriber, chunker_for(config), config["audio"]["preview_interval"])
     if args.debug:
@@ -62,6 +64,28 @@ def cmd_listen(args, config: Config) -> int:
     except KeyboardInterrupt:
         if not session.composer.empty:
             print("\nPrzerwano. Niewysłany szkic (NIE został nigdzie wysłany):\n" + session.draft())
+    return 0
+
+
+def cmd_prepare(args, config: Config) -> int:
+    """Download the model and check the hardware once, with clear messages."""
+    from .transcriber import Transcriber, resolve_model
+
+    choice = resolve_model(config)
+    print(f"Wybrany model: {choice.model} ({'karta graficzna' if choice.device == 'cuda' else 'procesor'}).")
+    print("Pobieram i sprawdzam model – za pierwszym razem może to potrwać kilka minut…", flush=True)
+    t = Transcriber(config)
+    if t.warning:
+        print(t.warning)
+    print(f"Gotowe: {t.choice.model} działa na {'karcie graficznej' if t.choice.device == 'cuda' else 'procesorze'}.")
+    try:
+        import sounddevice as sd
+
+        mic = sd.query_devices(kind="input")
+        print(f"Mikrofon: {mic['name']}")
+    except Exception as exc:
+        print(f"Uwaga: nie widzę mikrofonu ({exc}). Sprawdź, czy jest podłączony i dozwolony w Ustawieniach prywatności.")
+        return 1
     return 0
 
 
@@ -193,6 +217,9 @@ def main(argv: list[str] | None = None) -> int:
     p = sub.add_parser("listen", help="słuchaj mikrofonu")
     p.add_argument("--debug", action="store_true", help="pokaż surowy wynik Whispera")
     p.set_defaults(func=cmd_listen)
+
+    p = sub.add_parser("prepare", help="pobierz model i sprawdź sprzęt oraz mikrofon")
+    p.set_defaults(func=cmd_prepare)
 
     p = sub.add_parser("eval", help="zmierz jakość na własnych nagraniach")
     p.add_argument("folder", help="folder z parami nagranie + .txt")

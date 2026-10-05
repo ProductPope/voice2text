@@ -25,7 +25,7 @@ class Event:
 
 
 def edit_in_editor(text: str) -> str:
-    editor = os.environ.get("VISUAL") or os.environ.get("EDITOR") or "nano"
+    editor = os.environ.get("VISUAL") or os.environ.get("EDITOR") or ("notepad" if os.name == "nt" else "nano")
     with tempfile.NamedTemporaryFile("w+", suffix=".txt", delete=False, encoding="utf-8") as fh:
         fh.write(text)
         path = fh.name

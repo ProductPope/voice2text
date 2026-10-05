@@ -51,10 +51,10 @@ def choose_model(cuda_devices: int, cpu_count: int) -> ModelChoice:
     return ModelChoice("small", "cpu", "int8")
 
 
-def resolve_model(config: Config) -> ModelChoice:
+def resolve_model(config: Config, allow_gpu: bool = True) -> ModelChoice:
     g = config["general"]
     cuda = 0
-    if g["device"] in ("auto", "cuda"):
+    if allow_gpu and g["device"] in ("auto", "cuda"):
         try:
             import ctranslate2
 
@@ -62,7 +62,7 @@ def resolve_model(config: Config) -> ModelChoice:
         except Exception:
             cuda = 0
     auto = choose_model(cuda, os.cpu_count() or 1)
-    device = auto.device if g["device"] == "auto" else g["device"]
+    device = auto.device if g["device"] == "auto" or not allow_gpu else g["device"]
     model = auto.model if g["model"] == "auto" else g["model"]
     compute = g["compute_type"]
     if compute == "auto":
@@ -87,12 +87,28 @@ class Transcriber:
     def __init__(self, config: Config, extra_vocabulary: list[str] | None = None):
         from faster_whisper import WhisperModel  # heavy import, only when listening
 
-        self.choice = resolve_model(config)
         self.language = config["general"]["language"]
-        self.model = WhisperModel(
-            self.choice.model, device=self.choice.device, compute_type=self.choice.compute_type
-        )
+        self.warning = ""
+        self.choice = resolve_model(config)
+        try:
+            self.model = self._load(WhisperModel, self.choice)
+        except Exception as exc:
+            if self.choice.device != "cuda":
+                raise
+            # An NVIDIA card without the CUDA libraries (cuBLAS/cuDNN) is common
+            # on Windows; it only fails once the model actually runs.
+            self.warning = f"Karta graficzna niedostępna ({exc.__class__.__name__}: {exc}); używam procesora."
+            self.choice = resolve_model(config, allow_gpu=False)
+            self.model = self._load(WhisperModel, self.choice)
         self.set_vocabulary(list(config["rules"]["vocabulary"]) + list(extra_vocabulary or []))
+
+    def _load(self, whisper_model, choice: ModelChoice):
+        import numpy as np
+
+        model = whisper_model(choice.model, device=choice.device, compute_type=choice.compute_type)
+        segments, _ = model.transcribe(np.zeros(16000, dtype=np.float32), language=self.language)
+        list(segments)  # run it once so a broken GPU setup fails here, not mid-dictation
+        return model
 
     def set_vocabulary(self, vocabulary: list[str]) -> None:
         vocab = list(dict.fromkeys(v for v in vocabulary if v.strip()))
