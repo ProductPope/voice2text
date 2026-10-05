@@ -213,3 +213,14 @@ def test_confirm_mode_waits_and_can_be_cancelled():
         session.feed(words)
     assert session.confirm_send().sent == "Raport gotowy."
     assert sent == ["Raport gotowy."]
+
+
+def test_garbled_command_said_alone_still_works():
+    # Whisper heard "Nowa Rynia" / "Tofni." for "nowa linia" / "cofnij" (measured on Polish speech).
+    assert compose("Cześć [0.8] Nowa Rynia [0.8] dzięki") == "Cześć\nDzięki."
+    assert compose("Spotkajmy się [0.9] w poniedziałek [0.9] Tofni. [0.9] we wtorek") == "Spotkajmy się, we wtorek."
+
+
+def test_near_miss_inside_fluent_speech_is_not_a_command():
+    assert compose("To się cofnie jutro") == "To się cofnie jutro."
+    assert compose("Nowy kapitan statku") == "Nowy kapitan statku."

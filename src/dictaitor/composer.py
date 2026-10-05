@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
+from difflib import SequenceMatcher
 
 from .config import Config
 from .textutil import capitalize_first, decapitalize_first, norm, split_punct
@@ -79,13 +80,17 @@ class Composer:
         )
         self.phrases: list[Phrase] = []
         self.boundaries: list[Boundary] = []
+        self.last_had_command = False  # did the last add_words() run a voice command?
         self._gap_after_undo: float | None = None
 
     # ------------------------------------------------------------------ input
 
-    def add_words(self, words: list[Word]) -> None:
+    def add_words(self, words: list[Word]) -> int:
+        """Add one chunk; returns a marker that rollback() can return to."""
+        marker = len(self.phrases)
+        self.last_had_command = False
         if not words:
-            return
+            return marker
         current = Phrase()
         self.phrases.append(current)
         prev_end: float | None = None
@@ -98,6 +103,7 @@ class Composer:
 
             command, length = self._match_command(words, i)
             if command is not None:
+                self.last_had_command = True
                 prev_end = words[i + length - 1].end
                 i += length
                 if command == "@undo":
@@ -120,14 +126,35 @@ class Composer:
             )
             self._gap_after_undo = None
         self.phrases = [p for p in self.phrases if p.items or p is current]
+        return marker
+
+    def rollback(self, marker: int) -> None:
+        """Drop everything added since `marker` (only valid when no command ran since)."""
+        del self.phrases[marker:]
 
     def _match_command(self, words: list[Word], i: int) -> tuple[str | None, int]:
+        spoken = [norm(split_punct(w.text)[0]) for w in words]
         for parts, action in self.commands:
-            n = len(parts)
-            window = [norm(split_punct(w.text)[0]) for w in words[i : i + n]]
-            if window == parts:
-                return action, n
+            if spoken[i : i + len(parts)] == parts:
+                return action, len(parts)
+        # Whisper often garbles a command word ("nowa rynia", "tofni"). Tolerate that
+        # only when the command was said as its own phrase, with pauses around it -
+        # inside fluent speech a near miss ("cofnie się") is a normal word.
+        for parts, action in self.commands:
+            target = "".join(parts)
+            for size in sorted({len(parts), len(parts) - 1, len(parts) + 1}):
+                if size < 1 or i + size > len(words) or not self._isolated(words, i, size):
+                    continue
+                ratio = SequenceMatcher(None, "".join(spoken[i : i + size]), target).ratio()
+                if len(target) >= 5 and ratio >= 0.7:
+                    return action, size
         return None, 0
+
+    def _isolated(self, words: list[Word], i: int, size: int) -> bool:
+        before = i == 0 or words[i].start - words[i - 1].end >= self.comma_gap
+        j = i + size
+        after = j == len(words) or words[j].start - words[j - 1].end >= self.comma_gap
+        return before and after
 
     def _undo(self, current: Phrase) -> None:
         """Drop the phrase spoken before "cofnij" (the one since the last pause)."""

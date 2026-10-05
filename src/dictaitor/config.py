@@ -43,6 +43,8 @@ DEFAULTS: dict[str, Any] = {
         "model": "auto",
         "device": "auto",
         "compute_type": "auto",
+        # Optional Whisper initial prompt. Empty is best for most people (measured).
+        "prompt": "",
     },
     "gate": {
         "send_phrase": "wyślij teraz",
@@ -56,6 +58,9 @@ DEFAULTS: dict[str, Any] = {
         "comma_gap": 0.7,
         "sentence_gap": 1.5,
         "split_silence": 0.6,
+        # Re-read the chunk before a thinking pause together with the next one.
+        # Off by default: on Polish test speech with the "small" model it did not help.
+        "rejoin": False,
         "learn": True,
     },
     "commands": DEFAULT_COMMANDS,

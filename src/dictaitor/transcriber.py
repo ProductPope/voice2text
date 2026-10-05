@@ -28,10 +28,6 @@ HALLUCINATIONS = [
 ]
 _HALLUCINATIONS = [norm(h) for h in HALLUCINATIONS]
 
-# Tells Whisper what kind of text to expect (style, punctuation, mixed language).
-PROMPTS = {
-    "pl": "Dyktowany tekst po polsku, z interpunkcją i angielskimi terminami technicznymi.",
-}
 
 
 @dataclass
@@ -88,6 +84,7 @@ class Transcriber:
         from faster_whisper import WhisperModel  # heavy import, only when listening
 
         self.language = config["general"]["language"]
+        self.prompt_text = config["general"]["prompt"]
         self.warning = ""
         self.choice = resolve_model(config)
         try:
@@ -115,7 +112,9 @@ class Transcriber:
         # Hotwords bias decoding towards your names and jargon; the prompt also
         # tells Whisper the text is Polish with English terms mixed in.
         self.hotwords = ", ".join(vocab) or None
-        self.prompt = PROMPTS.get(self.language)
+        # Off by default: measured on Polish speech, a generic style prompt made
+        # Whisper drop first syllables ("Spotkanie" -> "Potkanie").
+        self.prompt = self.prompt_text or None
 
     def transcribe(self, audio, offset: float) -> list[Word]:
         segments, _ = self.model.transcribe(

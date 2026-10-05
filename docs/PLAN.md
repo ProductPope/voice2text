@@ -285,3 +285,32 @@ Czeka na Ciebie:
 - **Nazwa repozytorium** (voice2text → dictaitor) i przełączenie na publiczne.
 - Test instalatora na Twoim komputerze.
 
+## 18. Pomiar na polskiej mowie (syntezator Piper, głos „gosia”, 12 nagrań)
+
+Zestaw: pauzy do namysłu, dwa zdania, angielskie wtrącenia, hasło w środku zdania,
+anulowanie, komendy, nowa linia, „cofnij”, autopoprawka, pytanie, brak hasła, długie pauzy.
+
+| Wariant | WER | Fałszywe wysyłki | Pominięte hasła | Czekanie po haśle (4 rdzenie) |
+|---|---|---|---|---|
+| `small`, z podpowiedzią (prompt) | 37,9% | 0 | 0 | ~1,9 s |
+| `small`, bez podpowiedzi | 40,3% | 0 | 0 | ~1,7 s |
+| `large-v3-turbo`, bez podpowiedzi | 21,4% | 0 | 0 | ~5–6 s |
+| `small` + tolerancja przekręconych komend | **27,8%** | 0 | 0 | ~1,8 s |
+| `small` + łączenie fragmentów po pauzie | 29,2% | 0 | 0 | ~1,8 s |
+
+Wnioski i decyzje:
+- **Bezpieczeństwo: 100%** we wszystkich wariantach (hasło w środku zdania i brak hasła
+  nigdy nie wysłały, każde hasło na końcu zadziałało).
+- Podpowiedź (initial prompt) – wyłączona domyślnie: psuła hasło („Wyszli teraz”)
+  i początki słów.
+- Tolerancja komend powiedzianych osobno – włączona („Nowa Rynia” → nowa linia,
+  „Tofni” → cofnij); w płynnej mowie nadal tylko dokładne dopasowanie.
+- Łączenie fragmentów po pauzie (`pauses.rejoin`) – wyłączone domyślnie: z `small`
+  nie poprawiło wyniku. Do ponownej oceny z `large-v3-turbo` na mocniejszym sprzęcie.
+- Komendy interpunkcyjne mówione jednym ciągiem („dwukropek mleko przecinek chleb kropka”)
+  są dla Whispera trudne (zamienia je na „2.”, „www.”) – zalecenie: polegać na pauzach,
+  a komendy mówić z przerwą.
+- Autopoprawki („w poniedziałek, nie, we wtorek”) – wymagają kroku AI (M4), zgodnie z planem.
+- Uwaga: syntetyczny głos zniekształca część głosek (np. „Spotkajmy” → „Totkajmy”
+  nawet przy transkrypcji całego pliku) – prawdziwe nagrania użytkownika są niezbędne.
+

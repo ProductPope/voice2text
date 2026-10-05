@@ -171,3 +171,61 @@ def test_eval_flags_false_send():
     result = evaluate_audio("x", audio, [], Config(), t, scorer=EnergyScorer())
     assert result.false_sends == 1
     assert "FAŁSZYWA WYSYŁKA" in format_report(Report("fake", [result]))
+
+
+# ------------------------------------------------------------------ rejoin
+
+
+class LengthTranscriber:
+    """Answers by audio length: short single chunks vs the longer joined audio."""
+
+    def __init__(self, answers):
+        self.answers = answers  # list of (min_seconds, text); the longest match wins
+        self.calls = []
+
+    def transcribe(self, audio, offset):
+        seconds = len(audio) / SR
+        self.calls.append(round(seconds, 1))
+        text = [t for s, t in sorted(self.answers) if seconds >= s][-1]
+        texts = text.split()
+        step = seconds / len(texts)
+        words = [Word(t, offset + i * step, offset + (i + 0.8) * step) for i, t in enumerate(texts)]
+        words[0].chunk_start = words[-1].chunk_end = True
+        return words
+
+
+def run_pipeline(audio, transcriber, **pauses):
+    from dictaitor.pipeline import Pipeline
+    from dictaitor.session import Session
+
+    sent = []
+    config = Config.from_dict({"pauses": pauses})
+    session = Session(config, LearnedStore(), sink=lambda t: sent.append(t) or "ok")
+    pipe = Pipeline(session, transcriber, Chunker(EnergyScorer(), 0.6, 25.0))
+    for f in frames_of(audio):
+        pipe.push(f)
+    pipe.flush()
+    return sent, session, pipe
+
+
+def test_thinking_pause_chunk_is_reread_with_the_next_one():
+    # 1.0 s "Zrobimy to w" … 1.8 s pause … 1.0 s "poniedziałek rano" … then the safe phrase.
+    # Chunks carry 0.3 s pre-roll and 0.6 s of trailing silence: ~1.9 s, ~2.9 s, ~1.3 s.
+    audio = stream((1.2, 0.001), (1.0, 0.2), (1.8, 0.001), (2.0, 0.2), (1.5, 0.001), (0.4, 0.2), (1.0, 0.001))
+    t = LengthTranscriber([(0.0, "Wyślij teraz."), (1.6, "Zrobimy to wy."), (2.5, "poniedziałek rano."),
+                           (4.5, "Zrobimy to w poniedziałek rano.")])
+    sent, session, pipe = run_pipeline(audio, t, rejoin=True)
+    assert pipe.rejoins == 1
+    assert sent == ["Zrobimy to w poniedziałek rano."]
+    # the safe-phrase chunk itself was transcribed once and never joined (no extra wait)
+    assert t.calls[-1] < 1.5
+
+
+def test_rejoin_can_be_turned_off_and_commands_block_it():
+    audio = stream((1.2, 0.001), (1.0, 0.2), (1.8, 0.001), (2.0, 0.2), (1.5, 0.001))
+    t = LengthTranscriber([(0.0, "x"), (1.6, "Zrobimy to wy."), (2.5, "poniedziałek rano."), (4.5, "JOINED")])
+    _, session, pipe = run_pipeline(audio, t, rejoin=False)
+    assert pipe.rejoins == 0 and "JOINED" not in session.draft()
+    t2 = LengthTranscriber([(0.0, "x"), (1.6, "Coś tam."), (2.5, "nowa linia"), (4.5, "JOINED")])
+    _, session, pipe = run_pipeline(audio, t2, rejoin=True)
+    assert pipe.rejoins == 0 and "JOINED" not in session.draft()

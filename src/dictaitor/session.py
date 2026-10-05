@@ -82,7 +82,8 @@ class Session:
             # Speech during the countdown is ignored; the draft is frozen.
             return Event(Action.PENDING, self.pending)
         result = self.gate.check(words, followed_by_pause)
-        self.composer.add_words(result.words)
+        self.last_marker = self.composer.add_words(result.words)
+        self.last_had_command = self.composer.last_had_command
         if result.action is Action.CANCEL:
             self._new_composer()
             return Event(Action.CANCEL, "", info="anulowano, szkic wyczyszczony")
@@ -94,6 +95,12 @@ class Session:
                 self.pending = draft
                 return Event(Action.PENDING, draft)
             return self._send()
+        return Event(Action.CONTINUE, self.draft())
+
+    def replace_since(self, marker: int, words: list[Word]) -> Event:
+        """Swap the last chunk(s) for a better transcription of the same audio."""
+        self.composer.rollback(marker)
+        self.composer.add_words(words)
         return Event(Action.CONTINUE, self.draft())
 
     def confirm_send(self) -> Event:
