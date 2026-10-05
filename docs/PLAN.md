@@ -15,6 +15,11 @@
 | Intencje | **Lokalny LLM domyślnie**, chmura jako świadoma, jawnie oznaczona opcja |
 | Stack | **Python + PySide6**, faster-whisper, PyInstaller + Inno Setup |
 | Licencja | **MIT** |
+| Nazwa | propozycja: **Dyktator** – „Ty dyktujesz, on czeka na rozkaz” (do potwierdzenia) |
+| Po haśle | **0,8 s na rozmyślenie się** – Esc przerywa, potem wpisanie |
+| Skrót | `Ctrl+Alt+Spacja`, jeśli wolny (sprawdza `scripts/check-hotkeys.ps1` i aplikacja przy starcie) |
+| Chmura dla intencji | **Claude API** (Anthropic) |
+| CLI | zostaje jako narzędzie do testów i dla zaawansowanych, bez dodatkowej pracy |
 
 Zasada nadrzędna: **zero fałszywych wysyłek**. Lepiej raz nie zareagować na hasło
 (powtórzysz), niż wpisać tekst w złe miejsce.
@@ -53,7 +58,13 @@ Warstwa Windows trafia do `src/voice2text/app/`, a kod specyficzny dla systemu d
   na schowek z komunikatem, zamiast „cichej porażki”.
 - **Globalny skrót**: `RegisterHotKey` przez ctypes (bez hooków klawiatury, które
   wyglądają podejrzanie dla antywirusów). Domyślnie `Ctrl+Alt+Spacja`, konfigurowalny.
+  Przy starcie aplikacja próbuje go zarejestrować; jeśli jest zajęty, proponuje
+  następny wolny z listy (`Ctrl+Shift+Spacja`, `Ctrl+Alt+D`, `F9`) zamiast cicho nie działać.
   Ten sam skrót w trakcie dyktowania = przerwij (bez wysyłania).
+- **Terminale (Claude Code, Windows Terminal)**: wpisany znak nowej linii = Enter =
+  wysłanie promptu w połowie. Dla okien terminala tekst wielowierszowy idzie przez
+  wklejenie (bracketed paste), a nowe linie nigdy nie są „naciskane” jako Enter.
+  Wpisanie nigdy nie kończy się Enterem – wysyłkę w docelowej aplikacji robisz sam.
 - **VAD**: Silero (ONNX, już w zależnościach faster-whisper) zamiast obecnego
   progu energii – odporny na wentylator, klawiaturę, muzykę.
 - **Podgląd na żywo**: co ~0,5 s transkrypcja bieżącego fragmentu (wynik tymczasowy,
@@ -73,7 +84,8 @@ Warstwa Windows trafia do `src/voice2text/app/`, a kod specyficzny dla systemu d
 3. Konfigurowalne hasło + **test hasła** w ustawieniach: aplikacja prosi o
    wypowiedzenie go 3× i ostrzega, gdy Whisper je przekręca albo jest za krótkie.
 4. Okienko wyraźnie pokazuje stan: *słucham* / *hasło rozpoznane – wpisuję*.
-5. Opcjonalne „okno na rozmyślenie się” (np. 0,8 s, Esc przerywa) – **do decyzji**.
+5. „Okno na rozmyślenie się”: po haśle 0,8 s z odliczaniem w okienku, Esc przerywa
+   (szkic zostaje). Długość konfigurowalna, 0 = wyłączone.
 6. Wyjście z aplikacji, utrata fokusu, błąd = szkic **nigdy** nie jest wysyłany;
    zostaje do odzyskania z historii (lokalnie, z opcją wyłączenia historii).
 
@@ -100,9 +112,12 @@ Wszystko w `%APPDATA%\voice2text\` jako czytelne pliki (TOML/JSON), z eksportem/
 - **Lokalnie** (domyślnie, jeśli dostępny): dowolny serwer zgodny z OpenAI API na
   `localhost` (Ollama, LM Studio, llama.cpp server). Rekomendowany mały model
   (3–8 B) – lista przetestowanych modeli w README.
-- **Chmura** (opcjonalnie): ten sam interfejs (OpenAI-compatible + Anthropic), klucz
-  w Menedżerze poświadczeń Windows (`keyring`), **czerwona ikona w trayu** gdy aktywne,
-  osobna zgoda przy włączeniu, możliwość włączenia tylko dla wybranych profili.
+- **Chmura** (opcjonalnie): **Claude API** przez oficjalny SDK `anthropic`. Domyślny model
+  `claude-opus-5-5`; w ustawieniach można wybrać szybszy/tańszy (np. `claude-haiku-4-5`)
+  – wybór zostanie zmierzony na zestawie ewaluacyjnym pod kątem budżetu opóźnienia.
+  Klucz API z console.anthropic.com (rozliczany osobno od subskrypcji Claude/Claude Code)
+  trzymany w Menedżerze poświadczeń Windows (`keyring`), **czerwona ikona w trayu** gdy
+  aktywne, osobna zgoda przy włączeniu, możliwość włączenia tylko dla wybranych profili.
 - Strażnik: jeśli wynik LLM odbiega od szkicu bardziej niż próg (np. dodane zdania)
   → używamy szkicu bez LLM i logujemy lokalnie.
 - Bez LLM wszystko działa (reguły + heurystyki pauz) – LLM to dodatek.
@@ -141,8 +156,14 @@ Wszystko w `%APPDATA%\voice2text\` jako czytelne pliki (TOML/JSON), z eksportem/
   szablony zgłoszeń, CHANGELOG, wersjonowanie SemVer.
 - UI i komunikaty: angielski + polski (Qt `tr`), komendy głosowe per język
   (domyślne PL i EN) – żeby projekt był użyteczny poza Polską.
-- Nazwa: „voice2text” jest bardzo ogólna i prawdopodobnie zajęta na PyPI/winget –
-  **do decyzji** przed publikacją.
+- Nazwa – propozycje (wolne na PyPI w dniu sprawdzenia):
+  - **Dyktator** (rekomendacja) – dyktujesz, a on nic nie robi bez Twojego rozkazu.
+    Po angielsku czyta się jak „dictator”, i o to chodzi.
+    Hasło: *„Ty dyktujesz. On czeka na rozkaz.”* / *„You dictate. It waits for your word.”*
+  - **Słowo Daję** – nic nie wychodzi, dopóki nie dasz słowa. Świetne po polsku, nieczytelne dla reszty świata.
+  - **Hold My Words** – parafraza „hold my beer”: trzyma Twoje słowa do hasła.
+  - **Gaduła** – dla tych, co dużo mówią.
+  - **Ehm** – bo wycina Twoje „ehm” i „yyy”.
 
 ## 10. Kamienie milowe
 
@@ -169,8 +190,5 @@ Wszystko w `%APPDATA%\voice2text\` jako czytelne pliki (TOML/JSON), z eksportem/
 
 ## 12. Otwarte pytania
 
-1. Nazwa projektu (i sprawdzenie dostępności na GitHub/PyPI/winget).
-2. Czy chcesz „okno na rozmyślenie się” (0,8 s z Esc) po haśle?
-3. Domyślny skrót klawiszowy.
-4. Dostawca chmury dla intencji (Anthropic / OpenAI / dowolny zgodny z OpenAI).
-5. Czy CLI zostaje jako oficjalny interfejs (dla Linuksa i zaawansowanych)?
+1. Akceptacja nazwy (po niej: zmiana nazwy pakietu, repozytorium, sprawdzenie GitHub/winget).
+2. Wynik `scripts/check-hotkeys.ps1` na Twoim komputerze.
