@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "voice2text"
+version = "0.1.0"
+description = "Local dictation that understands your pauses and only sends after your safe phrase."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = ["numpy"]
+
+[project.optional-dependencies]
+listen = ["faster-whisper>=1.0", "sounddevice", "pyperclip"]
+type = ["pynput"]
+dev = ["pytest"]
+
+[project.scripts]
+v2t = "voice2text.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+voice2text = ["config.example.toml"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
