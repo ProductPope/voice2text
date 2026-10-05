@@ -271,6 +271,7 @@ def test_windows_hotkey_register_and_clipboard_roundtrip():
     p.set_clipboard("zażółć gęślą jaźń")
     assert p.get_clipboard() == "zażółć gęślą jaźń"
     assert isinstance(p.foreground_window(), int)
+    assert p.is_own_window(0) is False
 
 
 def test_correct_last_flow():
@@ -468,3 +469,14 @@ def test_model_cache_check_handles_unknown_model():
     from dictaitor.diagnostics import model_is_cached
 
     assert model_is_cached("definitely-not-a-model") is False
+
+
+def test_focus_taken_by_own_overlay_is_returned_and_text_typed():
+    c, platform, engine, ui, clock = make()
+    platform.window = 5
+    c.toggle()
+    platform.own.add(99)
+    platform.window = 99  # e.g. the overlay was activated
+    say_safe_phrase(c, engine, "Tekst.")
+    clock.fire()
+    assert platform.window == 5 and platform.typed == ["Tekst."]

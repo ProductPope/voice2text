@@ -13,6 +13,7 @@ class Platform(Protocol):
     def window_title(self, window: int) -> str: ...
     def is_elevated_window(self, window: int) -> bool: ...
     def focus_window(self, window: int) -> bool: ...
+    def is_own_window(self, window: int) -> bool: ...
     def type_text(self, text: str) -> None: ...
     def paste_text(self, text: str) -> None: ...
     def set_clipboard(self, text: str) -> None: ...
@@ -31,6 +32,7 @@ class FakePlatform:
         self.clipboard = ""
         self.hotkeys: dict[Hotkey, Callable[[], None]] = {}
         self.taken: set[str] = set()
+        self.own: set[int] = set()  # windows belonging to dictAItor itself
 
     def foreground_window(self) -> int:
         return self.window
@@ -44,6 +46,9 @@ class FakePlatform:
     def focus_window(self, window: int) -> bool:
         self.window = window
         return True
+
+    def is_own_window(self, window: int) -> bool:
+        return window in self.own
 
     def type_text(self, text: str) -> None:
         self.typed.append(text)

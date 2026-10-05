@@ -8,6 +8,7 @@ program already owns a shortcut.
 from __future__ import annotations
 
 import ctypes
+import os
 import queue
 import threading
 import time
@@ -201,6 +202,11 @@ class WindowsPlatform:
 
     def focus_window(self, window: int) -> bool:
         return bool(user32.SetForegroundWindow(window))
+
+    def is_own_window(self, window: int) -> bool:
+        pid = wintypes.DWORD()
+        user32.GetWindowThreadProcessId(window, ctypes.byref(pid))
+        return pid.value == os.getpid()
 
     # --------------------------------------------------------------- typing
 

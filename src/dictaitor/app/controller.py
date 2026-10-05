@@ -56,7 +56,12 @@ Schedule = Callable[[float, Callable[[], None]], Callable[[], None]]  # returns 
 def choose_delivery(text: str, target: int, platform: Platform, mode: str, paste_over: int) -> Delivery:
     if mode == "clipboard":
         return Delivery("clipboard")
-    if not target or platform.foreground_window() != target:
+    current = platform.foreground_window()
+    if target and current != target and platform.is_own_window(current):
+        # Our own overlay/dialog got the focus; hand it back to where you were.
+        platform.focus_window(target)
+        current = platform.foreground_window()
+    if not target or current != target:
         return Delivery("clipboard", "Aktywne okno się zmieniło – tekst czeka w schowku (Ctrl+V).")
     if platform.is_elevated_window(target):
         return Delivery(
