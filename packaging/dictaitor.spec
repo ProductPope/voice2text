@@ -34,11 +34,11 @@ cli = Analysis(["cli_entry.py"], **common)
 UTF8 = [("X utf8_mode=1", None, "OPTION")]
 app_exe = EXE(
     PYZ(app.pure), app.scripts, UTF8, exclude_binaries=True,
-    name="dictAItor", console=False, icon=None,
+    name="dictAItor", console=False, icon=os.path.join(SPECPATH, "dictaitor.ico"),
 )
 cli_exe = EXE(
     PYZ(cli.pure), cli.scripts, UTF8, exclude_binaries=True,
-    name="dictaitor-cli", console=True, icon=None,
+    name="dictaitor-cli", console=True, icon=os.path.join(SPECPATH, "dictaitor.ico"),
 )
 COLLECT(
     app_exe, app.binaries, app.datas,

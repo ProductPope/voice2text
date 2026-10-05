@@ -23,6 +23,8 @@ ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 DisableProgramGroupPage=yes
 LicenseFile=..\LICENSE
+SetupIconFile=dictaitor.ico
+UninstallDisplayIcon={app}\dictAItor.exe
 
 [Languages]
 Name: "polish"; MessagesFile: "compiler:Languages\Polish.isl"

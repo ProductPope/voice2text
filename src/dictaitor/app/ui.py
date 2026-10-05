@@ -319,6 +319,9 @@ def main() -> int:
     app = QApplication(sys.argv)
     app.setQuitOnLastWindowClosed(False)
     app.setApplicationName("dictAItor")
+    from importlib import resources
+
+    app.setWindowIcon(QIcon(str(resources.files("dictaitor") / "app" / "icon.png")))
 
     home = home_dir()
     home.mkdir(parents=True, exist_ok=True)

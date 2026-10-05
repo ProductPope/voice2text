@@ -1,13 +1,16 @@
 name: build-windows
 
 # Builds the Windows installer. Runs on version tags (and attaches the installer to a
-# GitHub Release), on demand, and when packaging files change.
+# GitHub Release), on demand, and whenever the app or packaging changes, so the newest
+# installer is always available as a run artifact.
 on:
   push:
     branches: ["**"]  # branch pushes build only when packaging changes (paths below)
     tags: ["v*"]      # path filters are not applied to tag pushes
     paths:
       - "packaging/**"
+      - "src/**"
+      - "pyproject.toml"
       - ".github/workflows/build-windows.yml"
   workflow_dispatch:
 
