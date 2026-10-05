@@ -39,9 +39,10 @@ DEFAULT_CONTINUATIONS = [
 DEFAULTS: dict[str, Any] = {
     "general": {
         "language": "pl",
-        "model": "small",
+        # "auto" picks by hardware: large-v3-turbo on an NVIDIA GPU or 8+ cores, else small.
+        "model": "auto",
         "device": "auto",
-        "compute_type": "int8",
+        "compute_type": "auto",
     },
     "gate": {
         "send_phrase": "wyślij teraz",
@@ -89,19 +90,41 @@ DEFAULTS: dict[str, Any] = {
         "min_pause_samples": 12,
     },
     "audio": {
-        "sample_rate": 16000,
+        "vad": "auto",  # auto | silero | energy
         "energy_threshold": 0.0,
         "max_chunk_seconds": 25.0,
+        # Seconds between live previews of the chunk being spoken; 0 = off.
+        "preview_interval": 1.0,
     },
 }
+
+
+# Sections whose keys are free-form (user phrases), so unknown keys are fine there.
+_FREE_FORM = {("commands",), ("rules", "replacements")}
 
 
 def home_dir() -> Path:
     env = os.environ.get("DICTAITOR_HOME")
     if env:
         return Path(env).expanduser()
+    if os.name == "nt" and os.environ.get("APPDATA"):
+        return Path(os.environ["APPDATA"]) / "dictaitor"
     base = os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config"
     return Path(base) / "dictaitor"
+
+
+def unknown_keys(user: dict[str, Any], defaults: dict[str, Any] = DEFAULTS, prefix: tuple = ()) -> list[str]:
+    """Dotted names of settings that don't exist - almost always typos."""
+    if prefix in _FREE_FORM:
+        return []
+    out = []
+    for key, value in user.items():
+        path = prefix + (key,)
+        if key not in defaults:
+            out.append(".".join(path))
+        elif isinstance(value, dict) and isinstance(defaults[key], dict):
+            out.extend(unknown_keys(value, defaults[key], path))
+    return out
 
 
 def _merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:
@@ -118,6 +141,7 @@ def _merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:
 class Config:
     data: dict[str, Any] = field(default_factory=lambda: copy.deepcopy(DEFAULTS))
     path: Path | None = None
+    warnings: list[str] = field(default_factory=list)
 
     def __getitem__(self, section: str) -> dict[str, Any]:
         return self.data[section]
@@ -129,6 +153,7 @@ class Config:
             return cls(path=path)
         with path.open("rb") as fh:
             user = tomllib.load(fh)
+        warnings = [f"nieznane ustawienie w {path.name}: {k}" for k in unknown_keys(user)]
         commands = user.pop("commands", None)
         data = _merge(DEFAULTS, user)
         if commands is not None:
@@ -136,7 +161,7 @@ class Config:
             merged = dict(DEFAULT_COMMANDS)
             merged.update(commands)
             data["commands"] = {k: v for k, v in merged.items() if v != ""}
-        return cls(data=data, path=path)
+        return cls(data=data, path=path, warnings=warnings)
 
     @classmethod
     def from_dict(cls, override: dict[str, Any]) -> "Config":

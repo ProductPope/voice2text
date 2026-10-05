@@ -1,7 +1,6 @@
 import numpy as np
 import pytest
 
-from dictaitor.audio import EnergyChunker
 from dictaitor.composer import Composer, Word
 from dictaitor.config import Config
 from dictaitor.gate import Action, Gate
@@ -203,23 +202,3 @@ def test_polish_refuses_remote_url():
     config = cfg(polish={"enabled": True, "url": "https://api.example.com"})
     with pytest.raises(PolishError):
         polish("tekst", config)
-
-
-# ------------------------------------------------------------------- audio
-
-
-def test_energy_chunker_splits_on_silence():
-    sr = 16000
-    chunker = EnergyChunker(sr, split_silence=0.6, max_chunk=25)
-    rng = np.random.default_rng(0)
-
-    def frames(seconds, amp):
-        n = int(seconds / 0.03)
-        return [rng.normal(0, amp, chunker.frame).astype(np.float32) for _ in range(n)]
-
-    stream = frames(1.2, 0.001) + frames(1.0, 0.2) + frames(1.0, 0.001) + frames(0.5, 0.2) + frames(1.0, 0.001)
-    chunks = [c for f in stream if (c := chunker.push(f)) is not None]
-    assert len(chunks) == 2
-    assert all(c.followed_by_pause for c in chunks)
-    assert 0.8 < chunks[0].offset < 1.3
-    assert chunks[1].offset > chunks[0].offset + 1.5

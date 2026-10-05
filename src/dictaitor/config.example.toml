@@ -3,10 +3,11 @@
 
 [general]
 language = "pl"
-# tiny / base / small / medium / large-v3 – większy = dokładniejszy, wolniejszy
-model = "small"
+# "auto" dobiera do sprzętu: large-v3-turbo na karcie NVIDIA lub CPU z 8+ rdzeniami,
+# w innym wypadku small. Ręcznie: tiny / base / small / medium / large-v3 / large-v3-turbo
+model = "auto"
 device = "auto"        # "cpu", "cuda" albo "auto"
-compute_type = "int8"
+compute_type = "auto"  # "int8" (CPU), "float16" (GPU) albo "auto"
 
 [gate]
 # Bezpieczne hasło. Dopóki go nie powiesz, NIC nie jest wysyłane.
@@ -69,6 +70,7 @@ min_occurrences = 2     # ile razy poprawić to samo, żeby reguła się włącz
 min_pause_samples = 12
 
 [audio]
-sample_rate = 16000
-energy_threshold = 0.0  # 0 = automatyczna kalibracja do szumu tła
+vad = "auto"            # silero (dokładny) | energy (prosty próg głośności) | auto
+energy_threshold = 0.0  # tylko dla vad = "energy"; 0 = automatyczna kalibracja
 max_chunk_seconds = 25.0
+preview_interval = 1.0  # co ile sekund podgląd tego, co właśnie mówisz; 0 = wyłączony

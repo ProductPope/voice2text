@@ -111,6 +111,20 @@ dictaitor simulate --output stdout "Zrobimy to w [2.0] poniedziałek [1.0] wyśl
 pip install -e ".[dev]" && pytest
 ```
 
+## Mierzenie jakości na własnym głosie
+
+Nagraj kilkanaście typowych wiadomości (razem z hasłem) i zmierz, jak sobie radzi:
+
+```bash
+dictaitor record nagrania zakupy        # nagrywa do nagrania/zakupy.wav, pyta o oczekiwany tekst
+dictaitor eval nagrania                 # WER, interpunkcja, fałszywe wysyłki, opóźnienie
+dictaitor eval nagrania --model small --model large-v3-turbo   # porównanie modeli
+```
+
+W pliku `.txt` jest to, co powinno zostać wysłane; kilka wysyłek oddziel linią `---`,
+a `#nosend` oznacza „nic nie może zostać wysłane” (np. hasło powiedziane w środku zdania).
+`record` to jedyna komenda, która zapisuje dźwięk na dysk – nagrania zostają u Ciebie.
+
 ## Strojenie
 
 | Ustawienie | Domyślnie | Kiedy zmienić |
@@ -118,8 +132,9 @@ pip install -e ".[dev]" && pytest
 | `pauses.split_silence` | 0.6 s | po ilu sekundach ciszy fragment idzie do transkrypcji (nie do wysłania) |
 | `pauses.comma_gap` | 0.7 s | próg przecinka (uczony z poprawek) |
 | `pauses.sentence_gap` | 1.5 s | próg końca zdania (uczony z poprawek) |
-| `general.model` | `small` | `medium`/`large-v3` lepiej rozumie polski, ale wolniej |
-| `audio.energy_threshold` | auto | ustaw np. `0.02`, jeśli szum tła jest brany za mowę |
+| `general.model` | `auto` | `large-v3-turbo` na GPU NVIDIA lub CPU z 8+ rdzeniami, inaczej `small`; porównaj przez `dictaitor eval --model` |
+| `audio.vad` | `auto` | `silero` (sieć neuronowa, odporna na szum) albo `energy` (próg głośności) |
+| `audio.preview_interval` | 1.0 s | jak często pokazywać podgląd tego, co właśnie mówisz; `0` wyłącza (oszczędza CPU) |
 | `text.continuations` | spójniki, przyimki | słowa, po których pauza nigdy nie kończy zdania |
 
 `dictaitor listen --debug` pokazuje surowe słowa Whispera z czasami – przydatne do strojenia.
@@ -128,8 +143,11 @@ pip install -e ".[dev]" && pytest
 
 ```
 src/dictaitor/
-  audio.py        mikrofon + podział na fragmenty po ciszy
-  transcriber.py  faster-whisper (lokalnie)
+  audio.py        mikrofon + wykrywanie mowy (Silero VAD) i podział na fragmenty
+  transcriber.py  faster-whisper (lokalnie), dobór modelu, filtr zmyśleń Whispera
+  pipeline.py     dźwięk → fragmenty → słowa → sesja, podgląd na żywo
+  evaluate.py     `dictaitor eval`: pomiar jakości na Twoich nagraniach
+  metrics.py      WER i trafność interpunkcji
   gate.py         bezpieczne hasło / anulowanie
   composer.py     pauzy → interpunkcja, komendy, wypełniacze, cofanie
   learning.py     uczenie zamian słów i progów pauz

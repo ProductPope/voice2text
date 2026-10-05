@@ -171,7 +171,7 @@ Wszystko w `%APPDATA%\dictaitor\` jako czytelne pliki (TOML/JSON), z eksportem/i
 | # | Zakres | Gotowe, gdy |
 |---|---|---|
 | M0 ✅ | Prototyp rdzenia (CLI): hasło, pauzy, komendy, uczenie | 27 testów, `dictaitor simulate` |
-| M1 | Rdzeń produkcyjny: Silero VAD, podgląd na żywo, filtr halucynacji, hotwords, autodobór modelu, `dictaitor eval`, refaktor configu (walidacja, `%APPDATA%`) | testy + zestaw ewaluacyjny, 0 fałszywych wysyłek |
+| M1 ✅ | Rdzeń produkcyjny: Silero VAD, podgląd na żywo, filtr halucynacji, hotwords, autodobór modelu, `dictaitor eval`, refaktor configu (walidacja, `%APPDATA%`) | testy + zestaw ewaluacyjny, 0 fałszywych wysyłek |
 | M2 | Aplikacja Windows MVP: tray, skrót, okienko szkicu, wpisywanie w zapamiętane okno, ustawienia, test hasła | dyktujesz do Slacka/przeglądarki na co dzień |
 | M3 | Uczenie w UI: „popraw ostatni”, ekran reguł, profile stylu, eksport/import | reguły powstają bez edytowania plików |
 | M4 | Intencje: lokalny LLM + opcjonalna chmura, strażnik zmian, budżet opóźnień | autopoprawki rozumiane poprawnie w zestawie ewaluacyjnym |
@@ -192,3 +192,20 @@ Wszystko w `%APPDATA%\dictaitor\` jako czytelne pliki (TOML/JSON), z eksportem/i
 ## 12. Otwarte pytania
 
 Brak – wszystkie decyzje do M1 podjęte.
+
+## 13. Stan po M1
+
+- Silero VAD działa strumieniowo (stan sieci przenoszony między ramkami; wynik identyczny
+  z wersją wsadową faster-whisper), z histerezą i odrzucaniem krótkich trzasków.
+- Podgląd na żywo co `audio.preview_interval` s (szybkie dekodowanie, `beam_size=1`).
+- Filtr zmyśleń Whispera (znane frazy z napisów, pętle powtórzeń, segmenty bez mowy).
+- Słownik (`rules.vocabulary` + nauczone nazwy) trafia do Whispera jako `hotwords`.
+- `model = "auto"`: pomiar na 4 rdzeniach CPU – `small` 0,26× czasu rzeczywistego,
+  `large-v3-turbo` 0,64× – stąd `small` poniżej 8 rdzeni.
+- `dictaitor record` / `dictaitor eval`; ostrzeżenia o literówkach w `config.toml`;
+  konfiguracja w `%APPDATA%\dictaitor` na Windows; CI na Windows i Linux.
+- Test od końca do końca na prawdziwym nagraniu (angielskim – brak polskiego w środowisku
+  testowym): WER 0%, 0 fałszywych wysyłek, ~2 s od hasła do wysyłki na 4 rdzeniach z `small`.
+- **Do zrobienia przez Ciebie:** nagrać 20–30 polskich próbek (`dictaitor record`) i uruchomić
+  `dictaitor eval` – to pierwszy prawdziwy pomiar na Twoim głosie i sprzęcie.
+

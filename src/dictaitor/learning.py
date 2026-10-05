@@ -76,6 +76,14 @@ class LearnedStore:
                 out[wrong] = right
         return out
 
+    def vocabulary(self, min_occurrences: int) -> list[str]:
+        """Learned names and jargon ("PostgreSQL", "Marcin") to hint Whisper with."""
+        return [
+            right
+            for right in self.active_replacements(min_occurrences).values()
+            if any(c.isupper() or c.isdigit() for c in right)
+        ]
+
     # ----------------------------------------------------------------- pauses
 
     def thresholds(self, config: Config) -> tuple[float, float]:
