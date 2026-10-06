@@ -183,10 +183,14 @@ def chunker_for(config: Config, scorer: Scorer | None = None) -> Chunker:
     )
 
 
-def microphone_frames() -> Iterator[np.ndarray]:
+def microphone_frames(backlog: list | None = None) -> Iterator[np.ndarray]:
+    """Yield 32 ms frames. If `backlog` is given, its first item is the frame queue,
+    so the caller can see how much recorded audio is still waiting to be processed."""
     import sounddevice as sd  # optional dependency, only for live use
 
     frames: queue.Queue[np.ndarray] = queue.Queue()
+    if backlog is not None:
+        backlog[:] = [frames]
 
     def callback(indata, _frames, _time, _status):
         frames.put(indata[:, 0].copy())

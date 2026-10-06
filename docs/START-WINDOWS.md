@@ -101,7 +101,9 @@ nigdzie wysyłany.
 2. Kliknij tam, gdzie chcesz pisać (np. okno Slacka albo Claude Code).
 3. Naciśnij **Ctrl+Alt+D** – kółko zrobi się **czerwone**, a na dole ekranu pojawi się
    okienko z tym, co mówisz.
-4. Powiedz wiadomość, a potem **„wyślij teraz”**. Kółko zrobi się pomarańczowe:
+4. Powiedz wiadomość, a potem **„wyślij teraz”** – albo kliknij niebieski przycisk
+   **Wyślij** w okienku na dole ekranu (wtedy tekst wpisze się od razu, bez odliczania).
+   Po haśle kółko zrobi się pomarańczowe:
    masz **0,8 sekundy**, żeby nacisnąć **Esc**, jeśli się rozmyślisz.
 5. Tekst zostanie **wpisany w okno, w którym byłeś**. Program nie naciska Entera –
    wysłanie wiadomości zostaje po Twojej stronie.

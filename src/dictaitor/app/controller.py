@@ -41,6 +41,7 @@ class Engine(Protocol):
     def confirm(self, done: Callable[[Event], None]) -> None: ...  # may finish on another tick
     def cancel_pending(self) -> None: ...
     def learn_correction(self, corrected: str) -> list[tuple[str, str]]: ...
+    def send_now(self) -> None: ...  # finish the utterance in progress, then request a send
 
 
 class UI(Protocol):
@@ -87,6 +88,7 @@ class Controller:
         self.last_unsent = ""
         self.hotkey: hotkeys.Hotkey | None = None
         self._cancel_timer: Callable[[], None] | None = None
+        self._button_send = False  # "Wyślij" clicked: deliver without the Esc countdown
 
     # ------------------------------------------------------------- setup
 
@@ -159,6 +161,14 @@ class Controller:
         elif self.state is State.SENDING:
             self.ui.notify("Kończę przygotowywanie tekstu – chwilę.")
 
+    def send_now(self) -> None:
+        """The overlay's "Wyślij" button."""
+        if self.state is State.LISTENING:
+            self._button_send = True
+            self.engine.send_now()
+        elif self.state is State.PENDING:
+            self._finish()  # already counting down: skip the rest of the wait
+
     def escape(self) -> None:
         if self.state is not State.PENDING:
             return
@@ -174,14 +184,19 @@ class Controller:
         if self.state not in (State.LISTENING, State.PENDING):
             return
         if event.action is Action.CONTINUE:
-            self._set(State.LISTENING, draft=event.draft)
+            if self._button_send and event.info:
+                self._button_send = False
+                self.ui.notify(event.info)
+            self._set(State.LISTENING, draft=event.draft or self._last_draft)
         elif event.action is Action.CANCEL:
             self.engine.stop()
             self._set(State.IDLE)
             self.ui.notify("Anulowano – szkic wyczyszczony, nic nie wysłano.")
         elif event.action is Action.PENDING and self.state is State.LISTENING:
             seconds = float(self.cfg["abort_seconds"])
-            if seconds <= 0:
+            if seconds <= 0 or self._button_send:
+                self._button_send = False
+                self.state = State.PENDING
                 self._finish()
                 return
             self._set(State.PENDING, draft=event.draft, detail=f"Wpisuję za {seconds:.1f} s – Esc anuluje")
@@ -268,7 +283,16 @@ class Controller:
         self.platform.set_clipboard(self.last_unsent)
         return True
 
+    @property
+    def _last_draft(self) -> str:
+        return getattr(self, "_draft", "")
+
     def _set(self, state: State, draft: str = "", detail: str = "") -> None:
+        if draft:
+            self._draft = draft
+        if state is State.IDLE:
+            self._draft = ""
+            self._button_send = False
         if state is not self.state:
             log.info("state %s -> %s", self.state.value, state.value)
         self.state = state

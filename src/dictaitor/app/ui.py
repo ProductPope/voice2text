@@ -10,7 +10,17 @@ import threading
 
 from PySide6.QtCore import QLockFile, QObject, Qt, QTimer, Signal
 from PySide6.QtGui import QAction, QColor, QFont, QGuiApplication, QIcon, QPainter, QPixmap
-from PySide6.QtWidgets import QApplication, QLabel, QMenu, QMessageBox, QSystemTrayIcon, QVBoxLayout, QWidget
+from PySide6.QtWidgets import (
+    QApplication,
+    QHBoxLayout,
+    QLabel,
+    QMenu,
+    QMessageBox,
+    QPushButton,
+    QSystemTrayIcon,
+    QVBoxLayout,
+    QWidget,
+)
 
 from ..audio import chunker_for, microphone_frames
 from ..config import Config, home_dir
@@ -81,6 +91,7 @@ class Engine(QObject):
         self._lock = threading.Lock()
         self._listening = threading.Event()
         self._capture_stop = threading.Event()
+        self._send_now = threading.Event()
         self._thread: threading.Thread | None = None
 
     def load(self) -> None:
@@ -134,10 +145,35 @@ class Engine(QObject):
             self.session, self.transcriber, chunker_for(self.config), self.config["audio"]["preview_interval"]
         )
         pipe.lock = self._lock
+        backlog: list = []
+        drain = None  # frames still to process before a button send
         try:
-            for frame in microphone_frames():  # the microphone is open only inside this loop
+            # The microphone is open only inside this loop.
+            for frame in microphone_frames(backlog):
                 if not self._listening.is_set():
                     break
+                if self._send_now.is_set():
+                    # "Wyślij": first catch up with everything said before the click
+                    # (transcription runs a little behind speech), then send.
+                    self._send_now.clear()
+                    drain = backlog[0].qsize() if backlog else 0
+                if drain is not None and drain > 0:
+                    drain -= 1
+                    event = pipe.push(frame)
+                    if event is not None:
+                        self.event.emit(event)
+                    continue
+                if drain is not None:
+                    drain = None
+                    event = pipe.push(frame)
+                    if event is not None:
+                        self.event.emit(event)
+                    event = pipe.flush()
+                    if event is not None:
+                        self.event.emit(event)
+                    with self._lock:
+                        self.event.emit(self.session.request_send())
+                    continue
                 event = pipe.push(frame)
                 if event is not None:
                     self.event.emit(event)
@@ -149,8 +185,12 @@ class Engine(QObject):
             log.exception("microphone loop failed")
             self.failed.emit(f"Problem z mikrofonem: {exc}")
 
+    def send_now(self) -> None:
+        self._send_now.set()
+
     def stop(self) -> str:
         self._listening.clear()
+        self._send_now.clear()
         with self._lock:
             draft = self.session.draft() if self.session else ""
             if self.session:
@@ -232,10 +272,26 @@ class Overlay(QWidget):
         bold = QFont()
         bold.setBold(True)
         self.status.setFont(bold)
+        # Clicking never activates this window (it doesn't take focus), so the text
+        # still goes into the window you were dictating into.
+        self.send_button = QPushButton("Wyślij")
+        self.send_button.setCursor(Qt.PointingHandCursor)
+        self.send_button.setFocusPolicy(Qt.NoFocus)
+        self.send_button.setToolTip("Wyślij teraz – tak jak po powiedzeniu hasła")
+        self.send_button.setStyleSheet(
+            "QPushButton { background: #1a73e8; color: white; border: none; border-radius: 6px;"
+            " padding: 4px 14px; font-weight: bold; }"
+            "QPushButton:hover { background: #1967d2; }"
+        )
+        self.send_button.clicked.connect(lambda: self.on_send and self.on_send())
+        self.on_send = None  # set to Controller.send_now in main()
+        header = QHBoxLayout()
+        header.addWidget(self.status, 1)
+        header.addWidget(self.send_button)
         self.draft = QLabel()
         self.draft.setWordWrap(True)
         self.draft.setTextFormat(Qt.RichText)
-        layout.addWidget(self.status)
+        layout.addLayout(header)
         layout.addWidget(self.draft)
         self.setFixedWidth(560)
         self._draft_text = ""
@@ -246,6 +302,7 @@ class Overlay(QWidget):
         color = COLORS[state]
         status = STATUS[state] + (f" – {detail}" if detail else "")
         self.status.setText(f'<span style="color:{color}">●</span> {status}')
+        self.send_button.setVisible(state in (State.LISTENING, State.PENDING))
         if state in (State.LISTENING, State.PENDING, State.SENDING):
             if draft or state is State.PENDING:
                 self._draft_text = draft
@@ -375,6 +432,7 @@ def main() -> int:
     engine.confirmed.connect(lambda done, event: done(event))
 
     ui.on_correction = controller.apply_correction
+    overlay.on_send = controller.send_now
     install_excepthook(lambda message: bridge.call.emit(lambda: ui.notify(message)))
     engine.downloading.connect(
         lambda model: ui.notify(

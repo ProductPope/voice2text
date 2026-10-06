@@ -480,3 +480,65 @@ def test_focus_taken_by_own_overlay_is_returned_and_text_typed():
     say_safe_phrase(c, engine, "Tekst.")
     clock.fire()
     assert platform.window == 5 and platform.typed == ["Tekst."]
+
+
+# ------------------------------------------------------------ "Wyślij" button
+
+
+def test_send_button_delivers_immediately_without_countdown():
+    c, platform, engine, ui, clock = make()
+    platform.window = 3
+    c.toggle()
+    c.on_event(Event(Action.CONTINUE, "Raport gotowy."))
+    engine.send_now = lambda: say_safe_phrase(c, engine, "Raport gotowy.")
+    c.send_now()
+    assert platform.typed == ["Raport gotowy."] and c.state is State.IDLE
+    assert ESCAPE not in platform.hotkeys and not [t for t in clock.timers if t[2]]
+
+
+def test_send_button_with_nothing_said_only_informs():
+    c, platform, engine, ui, clock = make()
+    c.toggle()
+    engine.send_now = lambda: c.on_event(Event(Action.CONTINUE, "", info="Nic jeszcze nie zostało podyktowane."))
+    c.send_now()
+    assert c.state is State.LISTENING and platform.typed == [] and "Nic jeszcze" in ui.notes[-1]
+
+
+def test_send_button_during_countdown_skips_the_wait():
+    c, platform, engine, ui, clock = make()
+    c.toggle()
+    say_safe_phrase(c, engine, "Tekst.")
+    assert c.state is State.PENDING
+    c.send_now()
+    assert platform.typed == ["Tekst."]
+    clock.fire()  # the cancelled countdown must not deliver a second time
+    assert platform.typed == ["Tekst."]
+
+
+def test_session_request_send():
+    from dictaitor.config import Config
+    from dictaitor.learning import LearnedStore
+    from dictaitor.script import parse_script
+    from dictaitor.session import Session
+
+    s = Session(Config(), LearnedStore(), sink=lambda t: "ok", confirm=True)
+    assert s.request_send().action is Action.CONTINUE  # nothing dictated yet
+    for words in parse_script("Raport gotowy", 0.6):
+        s.feed(words)
+    event = s.request_send()
+    assert event.action is Action.PENDING and event.draft == "Raport gotowy."
+    assert s.confirm_send().sent == "Raport gotowy."
+
+
+def test_overlay_send_button(qapp):
+    from dictaitor.app.ui import Overlay
+
+    overlay = Overlay()
+    clicks = []
+    overlay.on_send = lambda: clicks.append(1)
+    overlay.update_view(State.LISTENING, "Szkic", "")
+    assert overlay.send_button.isVisibleTo(overlay)
+    overlay.send_button.click()
+    assert clicks == [1]
+    overlay.update_view(State.SENDING, "", "")
+    assert not overlay.send_button.isVisibleTo(overlay)

@@ -97,6 +97,18 @@ class Session:
             return self._send()
         return Event(Action.CONTINUE, self.draft())
 
+    def request_send(self) -> Event:
+        """The "Wyślij" button: same as saying the safe phrase."""
+        if self.pending is not None:
+            return Event(Action.PENDING, self.pending)
+        draft = self.draft()
+        if not draft:
+            return Event(Action.CONTINUE, "", info="Nic jeszcze nie zostało podyktowane.")
+        if self.confirm:
+            self.pending = draft
+            return Event(Action.PENDING, draft)
+        return self._send()
+
     def replace_since(self, marker: int, words: list[Word]) -> Event:
         """Swap the last chunk(s) for a better transcription of the same audio."""
         self.composer.rollback(marker)
