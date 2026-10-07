@@ -337,6 +337,23 @@ def test_settings_dialog_saves_to_config_file(qapp, tmp_path):
     assert saved == [True]
 
 
+def test_settings_dialog_switches_language_and_default_phrases(qapp, tmp_path):
+    from dictaitor.app.dialogs import SettingsDialog
+    from dictaitor.config import Config
+
+    path = tmp_path / "config.toml"
+    d = SettingsDialog(Config(), path, lambda phrase: None, lambda: None)
+    d.cancel_phrase.setText("kasuj to")  # your own phrase is never replaced
+    d.language.setCurrentIndex(d.language.findData("en"))
+    assert d.send_phrase.text() == "send it now"
+    assert d.cancel_phrase.text() == "kasuj to"
+    d._save()
+    cfg = Config.load(path)
+    assert cfg["general"]["language"] == "en"
+    assert cfg["gate"]["send_phrase"] == "send it now"
+    assert "period" in cfg["commands"]
+
+
 def test_settings_dialog_refuses_altgr_hotkey(qapp, tmp_path, monkeypatch):
     from dictaitor.app import dialogs
     from dictaitor.config import Config

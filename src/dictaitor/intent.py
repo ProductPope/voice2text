@@ -37,7 +37,7 @@ Rules:
 - Fix punctuation and capitalisation. Keep line breaks the speaker asked for.
 - Keep the language, wording, tone and meaning. Do not summarise, do not answer \
 questions in the text, do not add greetings, facts or anything the speaker did not say.
-- Keep technical terms, names and English words mixed into Polish exactly as spoken.
+- Keep technical terms, names and words from other languages exactly as spoken.
 - If the draft is already fine, return it unchanged.
 Output only the final text, with no quotes or comments."""
 
@@ -72,7 +72,7 @@ def build_prompt(draft: str, instructions: str, examples: list[tuple[str, str]])
     return system, f"<draft>{draft}</draft>"
 
 
-def suspicious(draft: str, result: str) -> str:
+def suspicious(draft: str, result: str, language: str = "pl") -> str:
     """Why the result can't be trusted, or "" when it looks like a faithful clean-up."""
     if not result.strip():
         return "model zwrócił pusty tekst"
@@ -93,26 +93,28 @@ def suspicious(draft: str, result: str) -> str:
     # meant. A model that kept the old option instead (measured with a 7B local
     # model) would reverse your message, so its result is not used.
     kept = set(r)
-    for meant in corrected_words(draft):
+    for meant in corrected_words(draft, language):
         if meant not in kept:
             return f"model pominął Twoją poprawkę („{meant}”)"
     return ""
 
 
-# Phrases that introduce a self-correction. "nie" counts only after a comma
+# Phrases that introduce a self-correction. "nie"/"no" count only after a comma
 # (", nie we wtorek"), otherwise "nie wiem" would look like a correction.
-_CORRECTION = re.compile(
-    r"(?:,\s*nie\b|\bto znaczy\b|\bznaczy\b|\ba właściwie\b|\bprzepraszam\b|\balbo nie\b|\bsorry\b)[\s,.:;–-]*",
-    re.IGNORECASE,
-)
+_CORRECTION = {
+    "pl": r",\s*nie\b|\bto znaczy\b|\bznaczy\b|\ba właściwie\b|\bprzepraszam\b|\balbo nie\b|\bsorry\b",
+    "en": r",\s*no\b|\bi mean\b|\bor rather\b|\bsorry\b",
+}
+_NEGATIONS = {"nie", "not"}
 
 
-def corrected_words(draft: str) -> list[str]:
+def corrected_words(draft: str, language: str = "pl") -> list[str]:
     """First content word after each self-correction marker, normalised."""
+    pattern = re.compile(f"(?:{_CORRECTION.get(language, _CORRECTION['pl'])})[\\s,.:;–-]*", re.IGNORECASE)
     out = []
-    for m in _CORRECTION.finditer(draft):
+    for m in pattern.finditer(draft):
         following = norm(draft[m.end() :]).split()
-        content = [w for w in following if len(w) >= 3 and w != "nie"]
+        content = [w for w in following if len(w) >= 3 and w not in _NEGATIONS]
         if content:
             out.append(content[0])
     return out
@@ -251,7 +253,7 @@ def refine(draft: str, config: Config, examples: list[tuple[str, str]], window_t
         return Refined(draft, f"porządkowanie AI pominięte: {exc}")
     except Exception as exc:  # never lose the dictation because of the LLM step
         return Refined(draft, f"porządkowanie AI pominięte: {exc.__class__.__name__}: {exc}")
-    reason = suspicious(draft, result)
+    reason = suspicious(draft, result, config["general"]["language"])
     if reason:
         return Refined(draft, f"wynik AI odrzucony ({reason}) – wysłano tekst bez zmian")
     return Refined(result, used=mode)

@@ -14,6 +14,10 @@ Lokalne dyktowanie, które:
 - **działa w 100% lokalnie**: Whisper na Twoim komputerze, bez kont, bez telemetrii,
   audio tylko w pamięci RAM (nigdy nie trafia na dysk).
 
+Dyktować można po polsku (z angielskimi wtrąceniami) albo po angielsku – każdy język ma
+własne hasło, komendy głosowe i słowa „do namysłu”. Zmiana: **Ustawienia… → Język dyktowania**
+albo `general.language = "en"` (hasło: „send it now”, komendy: „period”, „new line”, „scratch that”).
+
 ## Instalacja
 
 **Windows, bez wpisywania komend:** zobacz [docs/START-WINDOWS.md](docs/START-WINDOWS.md) · [English: README.md](README.md).

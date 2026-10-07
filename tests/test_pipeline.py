@@ -226,3 +226,29 @@ def test_garbled_command_said_alone_still_works():
 def test_near_miss_inside_fluent_speech_is_not_a_command():
     assert compose("To się cofnie jutro") == "To się cofnie jutro."
     assert compose("Nowy kapitan statku") == "Nowy kapitan statku."
+
+
+# ------------------------------------------------------------------ english
+
+
+def test_english_preset_phrases_commands_and_pauses():
+    config = cfg(general={"language": "en"})
+    assert config["gate"]["send_phrase"] == "send it now"
+    sent, _ = run("Hi Anna [1.0] we ship on [2.0] Friday [2.0] um [0.8] thanks [1.0] send it now", config)
+    assert sent == ["Hi Anna, we ship on Friday. Thanks."]
+    assert (
+        compose("Groceries colon milk comma bread period new line Thanks", config) == "Groceries: milk, bread.\nThanks."
+    )
+    assert compose("Meet me [0.8] on Monday [0.8] scratch that [0.8] on Tuesday", config) == "Meet me, on Tuesday."
+    # Polish phrases mean nothing in English mode
+    sent, session = run("Hello [1.0] wyślij teraz", config)
+    assert sent == [] and "wyślij" in session.draft()
+
+
+def test_language_preset_keeps_user_overrides():
+    config = cfg(general={"language": "en"}, gate={"send_phrase": "over and out"}, commands={"period": ""})
+    assert config["gate"]["send_phrase"] == "over and out"
+    assert config["gate"]["cancel_phrase"] == "cancel everything"
+    assert "period" not in config["commands"] and "full stop" in config["commands"]
+    assert "kropka" not in config["commands"]
+    assert "kropka" in cfg()["commands"]

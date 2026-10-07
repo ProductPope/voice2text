@@ -9,7 +9,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-# Polish defaults; every list/map can be overridden in config.toml.
+# Language presets (general.language picks one); every list/map can be overridden
+# in config.toml. Polish is the default.
 DEFAULT_COMMANDS: dict[str, str] = {
     "kropka": ".",
     "przecinek": ",",
@@ -83,6 +84,85 @@ DEFAULT_CONTINUATIONS = [
     "that",
 ]
 
+EN_COMMANDS: dict[str, str] = {
+    "period": ".",
+    "full stop": ".",
+    "comma": ",",
+    "question mark": "?",
+    "exclamation mark": "!",
+    "colon": ":",
+    "semicolon": ";",
+    "dash": " –",
+    "new line": "\n",
+    "new paragraph": "\n\n",
+    "scratch that": "@undo",
+    "undo that": "@undo",
+    "clear everything": "@clear",
+}
+
+EN_CONTINUATIONS = [
+    "and",
+    "or",
+    "but",
+    "because",
+    "so",
+    "that",
+    "which",
+    "who",
+    "when",
+    "if",
+    "than",
+    "to",
+    "of",
+    "in",
+    "on",
+    "at",
+    "for",
+    "with",
+    "from",
+    "by",
+    "about",
+    "into",
+    "the",
+    "a",
+    "an",
+    "is",
+    "are",
+    "my",
+    "your",
+]
+
+# English words that keep their capital even where dictAItor lowers Whisper's
+# chunk-start capital ("on [pause] Friday").
+EN_KEEP_CASE = ["I", "I'm", "I'll", "I've", "I'd"] + (
+    "Monday Tuesday Wednesday Thursday Friday Saturday Sunday January February March April June July "
+    "August September October November December"
+).split()
+
+# What changes with general.language. Anything set in config.toml still wins.
+LANGUAGES: dict[str, dict[str, Any]] = {
+    "pl": {
+        "gate": {"send_phrase": "wyślij teraz", "cancel_phrase": "anuluj wszystko"},
+        "commands": DEFAULT_COMMANDS,
+        "text": {
+            "fillers": DEFAULT_FILLERS,
+            "continuations": DEFAULT_CONTINUATIONS,
+            # Pausing before these never adds a comma ("w środę … i w czwartek").
+            "no_comma_before": ["i", "oraz", "lub", "albo", "czy", "ani", "ni", "and", "or", "nor"],
+        },
+    },
+    "en": {
+        "gate": {"send_phrase": "send it now", "cancel_phrase": "cancel everything"},
+        "commands": EN_COMMANDS,
+        "text": {
+            "fillers": ["um", "uh", "uhm", "erm", "er", "hmm", "hm", "mmm", "ah"],
+            "continuations": EN_CONTINUATIONS,
+            "no_comma_before": ["and", "or", "nor"],
+            "keep_case": EN_KEEP_CASE,
+        },
+    },
+}
+
 DEFAULTS: dict[str, Any] = {
     "general": {
         "language": "pl",
@@ -94,8 +174,8 @@ DEFAULTS: dict[str, Any] = {
         "prompt": "",
     },
     "gate": {
-        "send_phrase": "wyślij teraz",
-        "cancel_phrase": "anuluj wszystko",
+        "send_phrase": LANGUAGES["pl"]["gate"]["send_phrase"],
+        "cancel_phrase": LANGUAGES["pl"]["gate"]["cancel_phrase"],
         "match_threshold": 0.8,
         # The send phrase only counts when followed by a pause, so saying it
         # in the middle of a sentence never sends anything.
@@ -112,10 +192,7 @@ DEFAULTS: dict[str, Any] = {
     },
     "commands": DEFAULT_COMMANDS,
     "text": {
-        "fillers": DEFAULT_FILLERS,
-        "continuations": DEFAULT_CONTINUATIONS,
-        # Pausing before these never adds a comma ("w środę … i w czwartek").
-        "no_comma_before": ["i", "oraz", "lub", "albo", "czy", "ani", "ni", "and", "or", "nor"],
+        **LANGUAGES["pl"]["text"],
         "keep_case": [],
     },
     "rules": {
@@ -220,18 +297,38 @@ class Config:
         with path.open("rb") as fh:
             user = tomllib.load(fh)
         warnings = [f"nieznane ustawienie w {path.name}: {k}" for k in unknown_keys(user)]
-        commands = user.pop("commands", None)
-        data = _merge(DEFAULTS, user)
-        if commands is not None:
-            # Commands merge key-by-key; an empty string disables a default command.
-            merged = dict(DEFAULT_COMMANDS)
-            merged.update(commands)
-            data["commands"] = {k: v for k, v in merged.items() if v != ""}
-        return cls(data=data, path=path, warnings=warnings)
+        language = user.get("general", {}).get("language", DEFAULTS["general"]["language"])
+        if language not in LANGUAGES:
+            warnings.append(f"general.language = {language!r}: hasła i komendy głosowe są tylko dla pl i en")
+        return cls(data=_build(user), path=path, warnings=warnings)
 
     @classmethod
     def from_dict(cls, override: dict[str, Any]) -> Config:
-        return cls(data=_merge(DEFAULTS, override))
+        return cls(data=_build(copy.deepcopy(override)))
+
+
+def defaults_for(language: str) -> dict[str, Any]:
+    """DEFAULTS with the phrases, voice commands and word lists of one language."""
+    preset = LANGUAGES.get(language)
+    data = copy.deepcopy(DEFAULTS)
+    data["general"]["language"] = language
+    if preset:
+        data["gate"].update(preset["gate"])
+        data["commands"] = dict(preset["commands"])
+        data["text"].update(copy.deepcopy(preset["text"]))
+    return data
+
+
+def _build(user: dict[str, Any]) -> dict[str, Any]:
+    base = defaults_for(user.get("general", {}).get("language", DEFAULTS["general"]["language"]))
+    commands = user.pop("commands", None)
+    data = _merge(base, user)
+    if commands is not None:
+        # Commands merge key-by-key; an empty string disables a default command.
+        merged = dict(base["commands"])
+        merged.update(commands)
+        data["commands"] = {k: v for k, v in merged.items() if v != ""}
+    return data
 
 
 def _toml_value(value: Any) -> str:
