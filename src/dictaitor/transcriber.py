@@ -29,7 +29,6 @@ HALLUCINATIONS = [
 _HALLUCINATIONS = [norm(h) for h in HALLUCINATIONS]
 
 
-
 @dataclass
 class ModelChoice:
     model: str

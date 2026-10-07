@@ -47,7 +47,7 @@ class PunctuationScore:
     predicted: int = 0
     expected: int = 0
 
-    def __add__(self, other: "PunctuationScore") -> "PunctuationScore":
+    def __add__(self, other: PunctuationScore) -> PunctuationScore:
         return PunctuationScore(
             self.correct + other.correct, self.predicted + other.predicted, self.expected + other.expected
         )

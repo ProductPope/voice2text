@@ -5,8 +5,8 @@ from __future__ import annotations
 import json
 import os
 import subprocess
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
@@ -60,8 +60,10 @@ class CorrectionDialog(QDialog):
         self.on_save = on_save
         layout = QVBoxLayout(self)
         layout.addWidget(
-            QLabel("Popraw tekst tak, jak powinien wyglądać. dictAItor zapamięta różnice\n"
-                   "(słowa, nazwy, interpunkcję po Twoich pauzach i Twój styl).")
+            QLabel(
+                "Popraw tekst tak, jak powinien wyglądać. dictAItor zapamięta różnice\n"
+                "(słowa, nazwy, interpunkcję po Twoich pauzach i Twój styl)."
+            )
         )
         self.edit = QPlainTextEdit(text)
         layout.addWidget(self.edit)
@@ -182,7 +184,9 @@ DELIVERY = [
 
 
 class SettingsDialog(QDialog):
-    def __init__(self, config: Config, config_path: Path, on_test_phrase: Callable[[str], None], on_saved: Callable[[], None]):
+    def __init__(
+        self, config: Config, config_path: Path, on_test_phrase: Callable[[str], None], on_saved: Callable[[], None]
+    ):
         super().__init__()
         self.config, self.path = config, config_path
         self.on_test_phrase, self.on_saved = on_test_phrase, on_saved
@@ -230,7 +234,9 @@ class SettingsDialog(QDialog):
         self.api_key = QLineEdit()
         self.api_key.setEchoMode(QLineEdit.Password)
         has_key = bool(intent.get_api_key())
-        self.api_key.setPlaceholderText("zapisany – wpisz nowy, żeby zmienić" if has_key else "sk-ant-… (z console.anthropic.com)")
+        self.api_key.setPlaceholderText(
+            "zapisany – wpisz nowy, żeby zmienić" if has_key else "sk-ant-… (z console.anthropic.com)"
+        )
         form.addRow("Klucz API Claude:", self.api_key)
         self._mode_changed()
 
@@ -269,7 +275,10 @@ class SettingsDialog(QDialog):
         open_path(self.path)
 
     def _save(self) -> None:
-        for field, spec in (("Skrót dyktowania", self.hotkey.text()), ("Skrót „popraw ostatni”", self.correct_hotkey.text())):
+        for field, spec in (
+            ("Skrót dyktowania", self.hotkey.text()),
+            ("Skrót „popraw ostatni”", self.correct_hotkey.text()),
+        ):
             try:
                 hotkeys.parse(spec)
             except hotkeys.HotkeyError as exc:
@@ -290,7 +299,10 @@ class SettingsDialog(QDialog):
         update_file(
             self.path,
             {
-                "gate": {"send_phrase": self.send_phrase.text().strip(), "cancel_phrase": self.cancel_phrase.text().strip()},
+                "gate": {
+                    "send_phrase": self.send_phrase.text().strip(),
+                    "cancel_phrase": self.cancel_phrase.text().strip(),
+                },
                 "app": {
                     "hotkey": self.hotkey.text().strip().lower(),
                     "correct_hotkey": self.correct_hotkey.text().strip().lower(),

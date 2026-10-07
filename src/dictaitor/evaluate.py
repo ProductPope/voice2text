@@ -133,9 +133,7 @@ def evaluate_folder(folder: Path, config: Config, transcriber, model_name: str) 
     report = Report(model=model_name)
     for audio_path, text_path in find_recordings(folder):
         audio = decode_audio(str(audio_path), sampling_rate=16000)
-        report.files.append(
-            evaluate_audio(audio_path.stem, audio, load_expected(text_path), config, transcriber)
-        )
+        report.files.append(evaluate_audio(audio_path.stem, audio, load_expected(text_path), config, transcriber))
     return report
 
 

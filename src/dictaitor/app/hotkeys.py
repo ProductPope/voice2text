@@ -7,8 +7,16 @@ from dataclasses import dataclass
 MOD_ALT, MOD_CONTROL, MOD_SHIFT, MOD_WIN = 0x1, 0x2, 0x4, 0x8
 _MODS = {"alt": MOD_ALT, "ctrl": MOD_CONTROL, "control": MOD_CONTROL, "shift": MOD_SHIFT, "win": MOD_WIN}
 _NAMED_KEYS = {
-    "space": 0x20, "spacja": 0x20, "esc": 0x1B, "escape": 0x1B, "enter": 0x0D,
-    "tab": 0x09, "pause": 0x13, "insert": 0x2D, "home": 0x24, "end": 0x23,
+    "space": 0x20,
+    "spacja": 0x20,
+    "esc": 0x1B,
+    "escape": 0x1B,
+    "enter": 0x0D,
+    "tab": 0x09,
+    "pause": 0x13,
+    "insert": 0x2D,
+    "home": 0x24,
+    "end": 0x23,
 }
 _NAMED_KEYS.update({f"f{i}": 0x6F + i for i in range(1, 25)})
 

@@ -5,15 +5,15 @@ from __future__ import annotations
 import os
 import subprocess
 import tempfile
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Callable
 
 from . import output
 from .composer import Composer, Word
 from .config import Config, home_dir
 from .gate import Action, Gate
-from .learning import LearnedStore, apply_replacements
 from .intent import refine
+from .learning import LearnedStore, apply_replacements
 
 
 @dataclass

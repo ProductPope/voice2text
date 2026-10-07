@@ -118,9 +118,7 @@ class FakeClaude:
 
     def create(self, **kwargs):
         self.calls.append(kwargs)
-        return SimpleNamespace(
-            stop_reason=self.stop_reason, content=[SimpleNamespace(type="text", text=self.text)]
-        )
+        return SimpleNamespace(stop_reason=self.stop_reason, content=[SimpleNamespace(type="text", text=self.text)])
 
 
 def test_claude_request_shape():
@@ -144,7 +142,9 @@ def test_claude_haiku_gets_plain_request():
 
 def test_claude_refusal_keeps_draft(monkeypatch):
     pytest.importorskip("anthropic")
-    monkeypatch.setitem(intent.BACKENDS, "claude", lambda s, u, c: intent.call_claude(s, u, c, FakeClaude("", "refusal")))
+    monkeypatch.setitem(
+        intent.BACKENDS, "claude", lambda s, u, c: intent.call_claude(s, u, c, FakeClaude("", "refusal"))
+    )
     r = intent.refine(DRAFT, cfg(mode="claude"), [])
     assert r.text == DRAFT and "odmówił" in r.note
 
@@ -179,14 +179,17 @@ def test_session_sends_refined_text_with_profile(monkeypatch):
 
 def test_guard_rejects_invented_word_but_accepts_fixes():
     # Real outputs of a local 7B model on Whisper drafts (measured).
-    assert "dopisał" in intent.suspicious("Zrobimy to wy. Poniedziałek rano.", "Zrobimy to wyciągnemy to poniedziałek rano.")
+    assert "dopisał" in intent.suspicious(
+        "Zrobimy to wy. Poniedziałek rano.", "Zrobimy to wyciągnemy to poniedziałek rano."
+    )
     assert intent.suspicious("Zrobimy to wy. Poniedziałek rano.", "Zrobimy to w poniedziałek rano.") == ""
-    assert intent.suspicious(
-        "Wyślę ci raport, to znaczy, wyślę ci prezentację jutro rano.", "Wyślę ci prezentację jutro rano."
-    ) == ""
-    assert intent.suspicious(
-        "Zrób deploy na stegingu i i odpal testy.", "Zrób deploy na stagingu i odpal testy."
-    ) == ""
+    assert (
+        intent.suspicious(
+            "Wyślę ci raport, to znaczy, wyślę ci prezentację jutro rano.", "Wyślę ci prezentację jutro rano."
+        )
+        == ""
+    )
+    assert intent.suspicious("Zrób deploy na stegingu i i odpal testy.", "Zrób deploy na stagingu i odpal testy.") == ""
 
 
 def test_warm_up_hits_local_server(local_server):

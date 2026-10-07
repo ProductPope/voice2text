@@ -8,9 +8,10 @@ or to the clipboard when typing there would be unsafe.
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 from dataclasses import dataclass
 from enum import Enum
-from typing import Callable, Protocol
+from typing import Protocol
 
 from ..gate import Action
 from ..session import Event
@@ -66,7 +67,8 @@ def choose_delivery(text: str, target: int, platform: Platform, mode: str, paste
         return Delivery("clipboard", "Aktywne okno się zmieniło – tekst czeka w schowku (Ctrl+V).")
     if platform.is_elevated_window(target):
         return Delivery(
-            "clipboard", "To okno działa jako administrator i Windows nie pozwala do niego pisać – tekst jest w schowku."
+            "clipboard",
+            "To okno działa jako administrator i Windows nie pozwala do niego pisać – tekst jest w schowku.",
         )
     # A typed newline is Enter: in a chat or in Claude Code it would send half
     # the message. Multi-line (and long) text is pasted instead.

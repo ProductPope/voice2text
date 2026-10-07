@@ -1,25 +1,49 @@
 name: tests
 
-# Automatic runs only while the repository is public (Actions minutes are free
-# there). In a private repository the job is skipped and costs nothing; a manual
-# run (Actions tab -> tests -> Run workflow) always works.
+# Lint + the full test suite (core, app logic, Qt dialogs, Silero VAD, Windows API)
+# on Linux and Windows, on every push and pull request. Jobs are skipped if the
+# repository is ever made private again (Actions minutes are free only for public
+# repositories); a manual run (Actions tab -> Run workflow) always works.
 on:
   push:
   pull_request:
   workflow_dispatch:
 
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
+  lint:
+    if: ${{ github.event_name == 'workflow_dispatch' || !github.event.repository.private }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install ruff
+      - run: ruff check src tests packaging
+      - run: ruff format --check src tests packaging
+
   test:
     if: ${{ github.event_name == 'workflow_dispatch' || !github.event.repository.private }}
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest]
+        python: ["3.11", "3.12"]
     runs-on: ${{ matrix.os }}
+    env:
+      QT_QPA_PLATFORM: offscreen  # Qt widgets without a display
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
-      - run: pip install -e ".[dev]"
-      - run: pytest -q
+          python-version: ${{ matrix.python }}
+          cache: pip
+      - name: System libraries for Qt (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libegl1 libgl1 libxkbcommon0 libfontconfig1 libdbus-1-3
+      - run: pip install -e ".[app,dev]"
+      - run: pytest -q -rs

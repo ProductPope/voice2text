@@ -1,0 +1,11 @@
+# Weekly pull requests for outdated dependencies and GitHub Actions versions.
+version: 2
+updates:
+  - package-ecosystem: pip
+    directory: "/"
+    schedule:
+      interval: weekly
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly

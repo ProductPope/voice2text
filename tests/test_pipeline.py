@@ -68,7 +68,9 @@ def test_cancel_phrase_clears_draft():
 
 
 def test_custom_safe_phrase():
-    sent, _ = run("Hej [1.0] wyślij teraz [1.0] zatwierdzam bez zmian", cfg(gate={"send_phrase": "zatwierdzam bez zmian"}))
+    sent, _ = run(
+        "Hej [1.0] wyślij teraz [1.0] zatwierdzam bez zmian", cfg(gate={"send_phrase": "zatwierdzam bez zmian"})
+    )
     assert sent == ["Hej, wyślij teraz."]
 
 
@@ -141,7 +143,10 @@ def test_replacements_from_config_apply_immediately():
 def test_learns_word_rule_after_repeated_review():
     store = LearnedStore()
     config = cfg(review={"enabled": True})
-    fix = lambda t: t.replace("postgres", "PostgreSQL")
+
+    def fix(text):
+        return text.replace("postgres", "PostgreSQL")
+
     for _ in range(2):
         run("Baza to postgres [1.0] wyślij teraz", config, store=store, reviewer=fix)
     # Third time the correction happens on its own.
@@ -192,9 +197,6 @@ def test_store_roundtrip(tmp_path):
 
 
 # ---------------------------------------------------------------- privacy
-
-
-
 
 
 def test_confirm_mode_waits_and_can_be_cancelled():

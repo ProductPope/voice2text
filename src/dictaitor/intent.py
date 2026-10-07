@@ -67,12 +67,8 @@ def build_prompt(draft: str, instructions: str, examples: list[tuple[str, str]])
     if instructions.strip():
         system += f"\n\nThe speaker's own style rules (follow them):\n{instructions.strip()}"
     if examples:
-        shots = "\n".join(
-            f"<example>\n<draft>{d}</draft>\n<final>{f}</final>\n</example>" for d, f in examples
-        )
-        system += (
-            "\n\nRecent drafts the speaker corrected by hand - learn their preferences from them:\n" + shots
-        )
+        shots = "\n".join(f"<example>\n<draft>{d}</draft>\n<final>{f}</final>\n</example>" for d, f in examples)
+        system += "\n\nRecent drafts the speaker corrected by hand - learn their preferences from them:\n" + shots
     return system, f"<draft>{draft}</draft>"
 
 

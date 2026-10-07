@@ -4,7 +4,7 @@ import pytest
 from dictaitor.audio import Chunker, EnergyScorer, frames_of
 from dictaitor.composer import Word
 from dictaitor.config import Config, unknown_keys
-from dictaitor.evaluate import evaluate_audio, format_report, load_expected, Report
+from dictaitor.evaluate import Report, evaluate_audio, format_report, load_expected
 from dictaitor.learning import LearnedStore
 from dictaitor.metrics import punctuation_score, word_error_rate
 from dictaitor.transcriber import choose_model, is_hallucination
@@ -212,8 +212,14 @@ def test_thinking_pause_chunk_is_reread_with_the_next_one():
     # 1.0 s "Zrobimy to w" … 1.8 s pause … 1.0 s "poniedziałek rano" … then the safe phrase.
     # Chunks carry 0.3 s pre-roll and 0.6 s of trailing silence: ~1.9 s, ~2.9 s, ~1.3 s.
     audio = stream((1.2, 0.001), (1.0, 0.2), (1.8, 0.001), (2.0, 0.2), (1.5, 0.001), (0.4, 0.2), (1.0, 0.001))
-    t = LengthTranscriber([(0.0, "Wyślij teraz."), (1.6, "Zrobimy to wy."), (2.5, "poniedziałek rano."),
-                           (4.5, "Zrobimy to w poniedziałek rano.")])
+    t = LengthTranscriber(
+        [
+            (0.0, "Wyślij teraz."),
+            (1.6, "Zrobimy to wy."),
+            (2.5, "poniedziałek rano."),
+            (4.5, "Zrobimy to w poniedziałek rano."),
+        ]
+    )
     sent, session, pipe = run_pipeline(audio, t, rejoin=True)
     assert pipe.rejoins == 1
     assert sent == ["Zrobimy to w poniedziałek rano."]

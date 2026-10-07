@@ -121,9 +121,7 @@ class Composer:
             i += 1
             if not text or norm(text) in self.fillers:
                 continue
-            current.items.append(
-                _Token(text, hint, w.start, w.end, w.chunk_start, w.chunk_end, self._gap_after_undo)
-            )
+            current.items.append(_Token(text, hint, w.start, w.end, w.chunk_start, w.chunk_end, self._gap_after_undo))
             self._gap_after_undo = None
         self.phrases = [p for p in self.phrases if p.items or p is current]
         return marker
@@ -168,7 +166,9 @@ class Composer:
         removed = next((it for it in current.items if isinstance(it, _Token)), None)
         kept = [it for p in self.phrases if p is not current for it in p.items if isinstance(it, _Token)]
         if removed is not None and kept:
-            self._gap_after_undo = removed.gap_before if removed.gap_before is not None else removed.start - kept[-1].end
+            self._gap_after_undo = (
+                removed.gap_before if removed.gap_before is not None else removed.start - kept[-1].end
+            )
         current.items.clear()
 
     def clear(self) -> None:
@@ -235,9 +235,7 @@ class Composer:
                 else:
                     gap = nxt.start - it.end
                 punct = self._decide(it, gap, nxt)
-                self.boundaries.append(
-                    Boundary(it.text, gap, punct, norm(it.text) in self.continuations)
-                )
+                self.boundaries.append(Boundary(it.text, gap, punct, norm(it.text) in self.continuations))
             if punct in SENTENCE_END:
                 sentence_start = True
 

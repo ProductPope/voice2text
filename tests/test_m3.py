@@ -19,7 +19,9 @@ def test_update_file_keeps_comments_and_adds_missing(tmp_path):
         '# moje ustawienia\n[gate]\nsend_phrase = "wyślij teraz"   # hasło\n\n[pauses]\ncomma_gap = 0.7\n',
         encoding="utf-8",
     )
-    update_file(path, {"gate": {"send_phrase": 'zatwierdzam "to"', "match_threshold": 0.85}, "app": {"abort_seconds": 1.5}})
+    update_file(
+        path, {"gate": {"send_phrase": 'zatwierdzam "to"', "match_threshold": 0.85}, "app": {"abort_seconds": 1.5}}
+    )
     text = path.read_text(encoding="utf-8")
     assert "# moje ustawienia" in text and "# hasło" in text
     cfg = Config.load(path)
@@ -40,7 +42,9 @@ def test_update_file_creates_file(tmp_path):
 
 
 def test_good_phrase_heard_every_time():
-    r = check_phrase("zatwierdzam bez zmian", ["Zatwierdzam bez zmian.", "zatwierdzam bez zmian", "Zatwierdzam, bez zmian!"], 0.8)
+    r = check_phrase(
+        "zatwierdzam bez zmian", ["Zatwierdzam bez zmian.", "zatwierdzam bez zmian", "Zatwierdzam, bez zmian!"], 0.8
+    )
     assert r.ok and all(ok for _, ok in r.heard)
 
 
@@ -50,7 +54,9 @@ def test_short_and_common_phrases_are_flagged():
 
 
 def test_misheard_phrase_is_flagged():
-    r = check_phrase("zatwierdzam bez zmian", ["zatwierdzam bez zmian", "a twierdza mi się zmian", "zatwierdzam bez zmian"], 0.8)
+    r = check_phrase(
+        "zatwierdzam bez zmian", ["zatwierdzam bez zmian", "a twierdza mi się zmian", "zatwierdzam bez zmian"], 0.8
+    )
     assert not r.ok and "1 z 3" in r.problems[0]
 
 

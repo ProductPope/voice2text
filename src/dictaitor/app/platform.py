@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 import os
-from typing import Callable, Protocol
+from collections.abc import Callable
+from typing import Protocol
 
 from .hotkeys import Hotkey
 

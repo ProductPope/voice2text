@@ -7,7 +7,12 @@ Thanks for helping! dictAItor is small on purpose — please keep changes focuse
 ```bash
 pip install -e ".[app,dev]"
 pytest                      # Linux needs QT_QPA_PLATFORM=offscreen for the Qt tests
+ruff check src tests packaging && ruff format src tests packaging
 ```
+
+Work on a branch and open a pull request to `main`; GitHub Actions runs lint and the
+full test suite on Linux and Windows (Python 3.11 and 3.12) and builds the Windows
+installer when the app changes. Merge when everything is green.
 
 Everything except the Windows typing/hotkey layer is testable on any OS:
 

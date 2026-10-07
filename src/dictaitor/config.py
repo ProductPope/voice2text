@@ -29,11 +29,58 @@ DEFAULT_FILLERS = ["yyy", "yy", "eee", "ee", "mmm", "hmm", "hm", "eh", "um", "uh
 
 # A pause right after one of these words is a "thinking" pause, never a sentence end.
 DEFAULT_CONTINUATIONS = [
-    "i", "a", "oraz", "albo", "lub", "ale", "lecz", "bo", "że", "żeby", "aby",
-    "który", "która", "które", "którzy", "gdy", "kiedy", "jeśli", "jeżeli",
-    "w", "we", "na", "do", "z", "ze", "o", "od", "po", "przy", "dla", "za",
-    "pod", "nad", "przez", "u", "to", "jest", "są", "czy", "jak", "niż",
-    "the", "and", "or", "but", "to", "of", "in", "on", "for", "with", "that",
+    "i",
+    "a",
+    "oraz",
+    "albo",
+    "lub",
+    "ale",
+    "lecz",
+    "bo",
+    "że",
+    "żeby",
+    "aby",
+    "który",
+    "która",
+    "które",
+    "którzy",
+    "gdy",
+    "kiedy",
+    "jeśli",
+    "jeżeli",
+    "w",
+    "we",
+    "na",
+    "do",
+    "z",
+    "ze",
+    "o",
+    "od",
+    "po",
+    "przy",
+    "dla",
+    "za",
+    "pod",
+    "nad",
+    "przez",
+    "u",
+    "to",
+    "jest",
+    "są",
+    "czy",
+    "jak",
+    "niż",
+    "the",
+    "and",
+    "or",
+    "but",
+    "to",
+    "of",
+    "in",
+    "on",
+    "for",
+    "with",
+    "that",
 ]
 
 DEFAULTS: dict[str, Any] = {
@@ -166,7 +213,7 @@ class Config:
         return self.data[section]
 
     @classmethod
-    def load(cls, path: Path | None = None) -> "Config":
+    def load(cls, path: Path | None = None) -> Config:
         path = path or home_dir() / "config.toml"
         if not path.exists():
             return cls(path=path)
@@ -183,7 +230,7 @@ class Config:
         return cls(data=data, path=path, warnings=warnings)
 
     @classmethod
-    def from_dict(cls, override: dict[str, Any]) -> "Config":
+    def from_dict(cls, override: dict[str, Any]) -> Config:
         return cls(data=_merge(DEFAULTS, override))
 
 
@@ -205,7 +252,7 @@ def update_file(path: Path, changes: dict[str, dict[str, Any]]) -> None:
     for section, values in changes.items():
         for key, value in values.items():
             line = f"{key} = {_toml_value(value)}"
-            start = next((i for i, l in enumerate(lines) if l.strip() == f"[{section}]"), None)
+            start = next((i for i, line_ in enumerate(lines) if line_.strip() == f"[{section}]"), None)
             if start is None:
                 lines += ["", f"[{section}]", line]
                 continue

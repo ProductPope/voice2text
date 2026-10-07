@@ -10,9 +10,9 @@ import logging
 import platform
 import sys
 import threading
+from collections.abc import Callable
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
-from typing import Callable
 
 from . import __version__
 
@@ -28,7 +28,10 @@ def setup_logging(home: Path) -> Path:
     log.setLevel(logging.INFO)
     log.info(
         "start dictAItor %s, Python %s, %s %s, frozen=%s",
-        __version__, platform.python_version(), platform.system(), platform.release(),
+        __version__,
+        platform.python_version(),
+        platform.system(),
+        platform.release(),
         getattr(sys, "frozen", False),
     )
     return path

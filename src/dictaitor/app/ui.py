@@ -117,8 +117,14 @@ class Engine(QObject):
             c = self.transcriber.choice
             where = "karta graficzna" if c.device == "cuda" else "procesor"
             note = f" ({self.transcriber.warning})" if self.transcriber.warning else ""
-            log.info("model %s on %s/%s loaded in %.1fs %s", c.model, c.device, c.compute_type,
-                     time.perf_counter() - started, self.transcriber.warning)
+            log.info(
+                "model %s on %s/%s loaded in %.1fs %s",
+                c.model,
+                c.device,
+                c.compute_type,
+                time.perf_counter() - started,
+                self.transcriber.warning,
+            )
             self.ready.emit(f"Model {c.model}, {where}{note}")
         except Exception as exc:
             log.exception("model load failed")
@@ -259,10 +265,7 @@ class Overlay(QWidget):
         self.setAttribute(Qt.WA_TranslucentBackground)
         card = QWidget(self)
         card.setObjectName("card")
-        card.setStyleSheet(
-            "#card { background: rgba(32,33,36,235); border-radius: 12px; }"
-            "QLabel { color: #e8eaed; }"
-        )
+        card.setStyleSheet("#card { background: rgba(32,33,36,235); border-radius: 12px; }QLabel { color: #e8eaed; }")
         outer = QVBoxLayout(self)
         outer.setContentsMargins(0, 0, 0, 0)
         outer.addWidget(card)

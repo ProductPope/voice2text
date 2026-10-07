@@ -37,7 +37,7 @@ class LearnedStore:
     # ------------------------------------------------------------ persistence
 
     @classmethod
-    def load(cls, path: Path) -> "LearnedStore":
+    def load(cls, path: Path) -> LearnedStore:
         if not path.exists():
             return cls(path=path)
         raw = json.loads(path.read_text(encoding="utf-8"))
@@ -194,7 +194,7 @@ def _fit_threshold(samples: list[tuple[float, bool]]) -> float | None:
     if pos < 3 or len(samples) - pos < 3:
         return None
     gaps = sorted({g for g, _ in samples})
-    candidates = [(a + b) / 2 for a, b in zip(gaps, gaps[1:])] or gaps
+    candidates = [(a + b) / 2 for a, b in zip(gaps, gaps[1:], strict=False)] or gaps
     best, best_err = None, None
     for t in candidates:
         err = sum(1 for g, y in samples if (g >= t) != y)

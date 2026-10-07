@@ -84,7 +84,9 @@ def cmd_prepare(args, config: Config) -> int:
         mic = sd.query_devices(kind="input")
         print(f"Mikrofon: {mic['name']}")
     except Exception as exc:
-        print(f"Uwaga: nie widzę mikrofonu ({exc}). Sprawdź, czy jest podłączony i dozwolony w Ustawieniach prywatności.")
+        print(
+            f"Uwaga: nie widzę mikrofonu ({exc}). Sprawdź, czy jest podłączony i dozwolony w Ustawieniach prywatności."
+        )
         return 1
     return 0
 
@@ -181,16 +183,17 @@ def cmd_rules(args, config: Config) -> int:
     g = config["gate"]
     print(f"Konfiguracja: {config.path}  (istnieje: {bool(config.path and config.path.exists())})")
     print(f"Hasło wysłania: „{g['send_phrase']}”   anulowania: „{g['cancel_phrase']}”")
-    print(f"Pauzy: przecinek ≥ {comma:.2f}s, koniec zdania ≥ {sentence:.2f}s "
-          f"(próbek z Twoich poprawek: {len(store.pause_samples)})")
+    print(
+        f"Pauzy: przecinek ≥ {comma:.2f}s, koniec zdania ≥ {sentence:.2f}s "
+        f"(próbek z Twoich poprawek: {len(store.pause_samples)})"
+    )
     print("\nKomendy głosowe:")
     for phrase, action in config["commands"].items():
         print(f"  „{phrase}” → {action!r}")
     print("\nTwoje reguły (config.toml):")
     for a, b in config["rules"]["replacements"].items():
         print(f"  {a} → {b}")
-    print("\nNauczone zamiany (aktywne od "
-          f"{config['learning']['min_occurrences']} powtórzeń):")
+    print(f"\nNauczone zamiany (aktywne od {config['learning']['min_occurrences']} powtórzeń):")
     for wrong, options in store.replacements.items():
         for right, count in options.items():
             print(f"  {wrong} → {right}   ×{count}")
