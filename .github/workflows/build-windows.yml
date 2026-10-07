@@ -1,10 +1,18 @@
 name: build-windows
 
-# Builds the Windows installer - manual only (Actions tab -> build-windows -> Run
-# workflow). Every run costs GitHub Actions minutes on a private repository (Windows
-# minutes count double), so nothing starts automatically. For a release, run it on a
-# v* tag: the installer is then attached to a GitHub Release.
+# Builds the Windows installer on version tags (attached to a GitHub Release) and
+# when the app or packaging changes. Automatic runs happen only while the repository
+# is public (Actions minutes are free there); in a private repository the job is
+# skipped and costs nothing. A manual run (Actions tab -> Run workflow) always works.
 on:
+  push:
+    branches: ["**"]  # branch pushes build only when these paths change
+    tags: ["v*"]      # path filters are not applied to tag pushes
+    paths:
+      - "packaging/**"
+      - "src/**"
+      - "pyproject.toml"
+      - ".github/workflows/build-windows.yml"
   workflow_dispatch:
 
 permissions:
@@ -12,6 +20,7 @@ permissions:
 
 jobs:
   build:
+    if: ${{ github.event_name == 'workflow_dispatch' || !github.event.repository.private }}
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4

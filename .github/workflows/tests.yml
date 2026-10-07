@@ -1,12 +1,16 @@
 name: tests
 
-# Manual only (Actions tab -> tests -> Run workflow): runs cost GitHub Actions
-# minutes on a private repository, and tests run locally with `pytest`.
+# Automatic runs only while the repository is public (Actions minutes are free
+# there). In a private repository the job is skipped and costs nothing; a manual
+# run (Actions tab -> tests -> Run workflow) always works.
 on:
+  push:
+  pull_request:
   workflow_dispatch:
 
 jobs:
   test:
+    if: ${{ github.event_name == 'workflow_dispatch' || !github.event.repository.private }}
     strategy:
       fail-fast: false
       matrix:

@@ -144,7 +144,7 @@ Wszystko w `%APPDATA%\dictaitor\` jako czytelne pliki (TOML/JSON), z eksportem/i
   w repo) + syntetyczny zestaw publiczny. Metryki: WER, F1 interpunkcji,
   **liczba fałszywych wysyłek (musi być 0)**, pominięte hasła, opóźnienie.
   Skrypt `dictaitor eval` porównuje wersje i modele.
-- **CI (GitHub Actions)** – **tylko ręcznie** (decyzja: nie zużywać darmowych minut prywatnego repo): testy na `windows-latest` i `ubuntu-latest`;
+- **CI (GitHub Actions)** – automatycznie tylko w publicznym repo (prywatne: pomijane, 0 minut): testy na `windows-latest` i `ubuntu-latest`;
   build instalatora na tagu.
 
 ## 8. Dystrybucja
@@ -335,11 +335,9 @@ Zmiany po pomiarze:
 - Tryb lokalny opisany jako eksperymentalny; domyślny model lokalny: `qwen2.5:7b`.
 - Claude (tryb chmurowy) nie był testowany na żywo – brak klucza w środowisku testowym.
 
-## 20. GitHub Actions tylko ręcznie
+## 20. GitHub Actions a minuty
 
 Decyzja autora: prywatne repo nie może zużywać darmowych minut GitHub Actions.
-Oba workflowy (`tests`, `build-windows`) uruchamiają się wyłącznie ręcznie
-(zakładka Actions → wybierz workflow → Run workflow). Testy uruchamiam lokalnie (`pytest`).
-Po upublicznieniu repozytorium minuty są bezpłatne – wtedy można przywrócić
-automatyczne uruchamianie przy każdej zmianie.
-
+Oba workflowy mają warunek `!github.event.repository.private`: w prywatnym repo
+zadania są pomijane (0 minut), po upublicznieniu działają automatycznie przy każdej
+zmianie (w publicznych repo minuty są bezpłatne). Ręczne uruchomienie działa zawsze.
