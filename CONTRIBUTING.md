@@ -37,7 +37,8 @@ pauses through the pipeline without a microphone — handy for pause/command cha
 - Every message a user can see is written as `t("polski", "English")` (`dictaitor.i18n`),
   so both versions change together.
 - Run `pytest` (and `dictaitor eval` on your samples if you touched recognition or pauses)
-  before opening a pull request.
+  before opening a pull request. No recordings yet? `scripts/make_synthetic_set.py`
+  builds a synthetic Polish or English set with the Piper synthesizer.
 
 ## Code of conduct
 

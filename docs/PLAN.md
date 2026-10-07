@@ -314,6 +314,26 @@ Wnioski i decyzje:
 - Uwaga: syntetyczny głos zniekształca część głosek (np. „Spotkajmy” → „Totkajmy”
   nawet przy transkrypcji całego pliku) – prawdziwe nagrania użytkownika są niezbędne.
 
+## 18b. Pomiar na angielskiej mowie (Piper, głos „lessac”, 12 nagrań, `language = "en"`)
+
+Ten sam układ przypadków co po polsku (`scripts/make_synthetic_set.py en …`), hasło
+„send it now”, komendy „period”, „new line”, „scratch that”, bez kroku AI.
+
+| Wariant | WER | Fałszywe wysyłki | Pominięte hasła | Czekanie po haśle (4 rdzenie) |
+|---|---|---|---|---|
+| `small` | 14,4% | 0 | 0 | ~1,5 s |
+| `large-v3-turbo` | 5,7% | 0 | 0 | ~4–5 s |
+
+Wnioski:
+- **Bezpieczeństwo: 100%** – „send it now” w środku zdania i brak hasła nie wysłały
+  niczego, każde hasło na końcu zadziałało (także „Send it now.” z kropką Whispera).
+- Tolerancja przekręconych komend działa też po angielsku („Gretch that” → scratch that).
+- Błędy `small` to głównie syntetyczny głos („comma” → „come a” w płynnej mowie,
+  „Hi” → „Bye”) i wykrzykniki dopisywane przez Whispera; autopoprawka
+  („Monday, no, on Tuesday”) – jak po polsku wymaga kroku AI.
+- Angielski wychodzi wyraźnie lepiej niż polski (14% vs 28% WER na `small`) – Whisper
+  ma znacznie więcej angielskich danych treningowych.
+
 ## 19. Pomiar kroku AI na prawdziwych modelach lokalnych (Ollama, CPU 4 rdzenie)
 
 Szkice wzięte z pomiaru polskiej mowy (z prawdziwymi błędami Whispera):
