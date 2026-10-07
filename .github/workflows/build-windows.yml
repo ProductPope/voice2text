@@ -45,7 +45,7 @@ jobs:
           choco install innosetup -y --no-progress
           $version = (python -c "import dictaitor; print(dictaitor.__version__)")
           & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" "/DVersion=$version" packaging\installer.iss
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: dictaitor-setup
           path: dist/dictaitor-setup-*.exe
