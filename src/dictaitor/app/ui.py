@@ -288,8 +288,20 @@ class Overlay(QWidget):
         )
         self.send_button.clicked.connect(lambda: self.on_send and self.on_send())
         self.on_send = None  # set to Controller.send_now in main()
+        self.cancel_button = QPushButton("Anuluj")
+        self.cancel_button.setCursor(Qt.PointingHandCursor)
+        self.cancel_button.setFocusPolicy(Qt.NoFocus)
+        self.cancel_button.setToolTip("Przerwij – nic nie zostanie wysłane (szkic odzyskasz z menu kółka)")
+        self.cancel_button.setStyleSheet(
+            "QPushButton { background: transparent; color: #bdc1c6; border: 1px solid #5f6368;"
+            " border-radius: 6px; padding: 4px 12px; }"
+            "QPushButton:hover { color: #e8eaed; border-color: #9aa0a6; }"
+        )
+        self.cancel_button.clicked.connect(lambda: self.on_cancel and self.on_cancel())
+        self.on_cancel = None  # set to Controller.cancel in main()
         header = QHBoxLayout()
         header.addWidget(self.status, 1)
+        header.addWidget(self.cancel_button)
         header.addWidget(self.send_button)
         self.draft = QLabel()
         self.draft.setWordWrap(True)
@@ -305,7 +317,8 @@ class Overlay(QWidget):
         color = COLORS[state]
         status = STATUS[state] + (f" – {detail}" if detail else "")
         self.status.setText(f'<span style="color:{color}">●</span> {status}')
-        self.send_button.setVisible(state in (State.LISTENING, State.PENDING))
+        for button in (self.send_button, self.cancel_button):
+            button.setVisible(state in (State.LISTENING, State.PENDING))
         if state in (State.LISTENING, State.PENDING, State.SENDING):
             if draft or state is State.PENDING:
                 self._draft_text = draft
@@ -436,6 +449,7 @@ def main() -> int:
 
     ui.on_correction = controller.apply_correction
     overlay.on_send = controller.send_now
+    overlay.on_cancel = controller.cancel
     install_excepthook(lambda message: bridge.call.emit(lambda: ui.notify(message)))
     engine.downloading.connect(
         lambda model: ui.notify(

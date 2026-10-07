@@ -171,6 +171,13 @@ class Controller:
         elif self.state is State.PENDING:
             self._finish()  # already counting down: skip the rest of the wait
 
+    def cancel(self) -> None:
+        """The overlay's "Anuluj" button: never sends anything."""
+        if self.state is State.PENDING:
+            self.escape()  # stop the countdown, keep dictating
+        elif self.state is State.LISTENING:
+            self.toggle()  # stop listening; the draft stays recoverable from the tray menu
+
     def escape(self) -> None:
         if self.state is not State.PENDING:
             return

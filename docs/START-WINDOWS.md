@@ -109,7 +109,7 @@ nigdzie wysyłany.
    wysłanie wiadomości zostaje po Twojej stronie.
 
 Dobrze wiedzieć:
-- Ponowne **Ctrl+Alt+D** w trakcie = przerwij bez wysyłania (szkic odzyskasz z menu
+- Przycisk **Anuluj** w okienku (albo ponowne **Ctrl+Alt+D**) = przerwij bez wysyłania (szkic odzyskasz z menu
   pod prawym przyciskiem na kółku).
 - Jeśli w międzyczasie klikniesz inne okno, tekst **nie** zostanie wpisany gdzie indziej –
   trafi do schowka (Ctrl+V).
