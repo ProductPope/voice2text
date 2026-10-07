@@ -15,7 +15,8 @@ Everything except the Windows typing/hotkey layer is testable on any OS:
   learning, AI clean-up. Pure Python, unit-tested.
 - `src/dictaitor/app/controller.py` — app logic with no GUI code; test it with
   `FakePlatform` (see `tests/test_app.py`).
-- `src/dictaitor/app/win32.py` — Windows API via ctypes; CI runs its tests on Windows.
+- `src/dictaitor/app/win32.py` — Windows API via ctypes; its tests run on Windows only
+  (`pytest` on a Windows machine, or the manual `tests` workflow in GitHub Actions).
 
 `dictaitor simulate "text [1.2] more text [1.0] wyślij teraz"` replays a script with
 pauses through the pipeline without a microphone — handy for pause/command changes.

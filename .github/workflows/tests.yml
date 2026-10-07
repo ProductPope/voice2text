@@ -1,8 +1,9 @@
 name: tests
 
+# Manual only (Actions tab -> tests -> Run workflow): runs cost GitHub Actions
+# minutes on a private repository, and tests run locally with `pytest`.
 on:
-  push:
-  pull_request:
+  workflow_dispatch:
 
 jobs:
   test:

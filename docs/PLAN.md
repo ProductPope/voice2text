@@ -144,7 +144,7 @@ Wszystko w `%APPDATA%\dictaitor\` jako czytelne pliki (TOML/JSON), z eksportem/i
   w repo) + syntetyczny zestaw publiczny. Metryki: WER, F1 interpunkcji,
   **liczba fałszywych wysyłek (musi być 0)**, pominięte hasła, opóźnienie.
   Skrypt `dictaitor eval` porównuje wersje i modele.
-- **CI (GitHub Actions)**: testy na `windows-latest` i `ubuntu-latest`, ruff, mypy;
+- **CI (GitHub Actions)** – **tylko ręcznie** (decyzja: nie zużywać darmowych minut prywatnego repo): testy na `windows-latest` i `ubuntu-latest`;
   build instalatora na tagu.
 
 ## 8. Dystrybucja
@@ -334,4 +334,12 @@ Zmiany po pomiarze:
   przestaje wypadać po haśle).
 - Tryb lokalny opisany jako eksperymentalny; domyślny model lokalny: `qwen2.5:7b`.
 - Claude (tryb chmurowy) nie był testowany na żywo – brak klucza w środowisku testowym.
+
+## 20. GitHub Actions tylko ręcznie
+
+Decyzja autora: prywatne repo nie może zużywać darmowych minut GitHub Actions.
+Oba workflowy (`tests`, `build-windows`) uruchamiają się wyłącznie ręcznie
+(zakładka Actions → wybierz workflow → Run workflow). Testy uruchamiam lokalnie (`pytest`).
+Po upublicznieniu repozytorium minuty są bezpłatne – wtedy można przywrócić
+automatyczne uruchamianie przy każdej zmianie.
 
