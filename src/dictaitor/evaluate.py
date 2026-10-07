@@ -18,6 +18,7 @@ from pathlib import Path
 
 from .audio import chunker_for, frames_of
 from .config import Config
+from .i18n import t
 from .learning import LearnedStore
 from .metrics import PunctuationScore, punctuation_score, word_error_rate
 from .pipeline import Pipeline
@@ -139,23 +140,45 @@ def evaluate_folder(folder: Path, config: Config, transcriber, model_name: str) 
 
 def format_report(report: Report) -> str:
     lines = [f"Model: {report.model}", ""]
-    lines.append(f"{'nagranie':<24}{'WER':>7}{'interp.F1':>11}{'wysłane':>9}{'oczek.':>8}{'opóźn.':>9}")
+    lines.append(
+        t(
+            f"{'nagranie':<24}{'WER':>7}{'interp.F1':>11}{'wysłane':>9}{'oczek.':>8}{'opóźn.':>9}",
+            f"{'recording':<24}{'WER':>7}{'punct.F1':>11}{'sent':>9}{'expect.':>8}{'delay':>9}",
+        )
+    )
     for f in report.files:
-        flag = "  ⚠ FAŁSZYWA WYSYŁKA" if f.false_sends else ("  ⚠ pominięte hasło" if f.missed_sends else "")
+        if f.false_sends:
+            flag = t("  ⚠ FAŁSZYWA WYSYŁKA", "  ⚠ FALSE SEND")
+        else:
+            flag = t("  ⚠ pominięte hasło", "  ⚠ missed phrase") if f.missed_sends else ""
         lines.append(
             f"{f.name[:23]:<24}{f.wer:>7.1%}{f.punctuation.f1:>11.2f}{len(f.sent):>9}"
             f"{len(f.expected):>8}{f.send_latency:>8.2f}s{flag}"
         )
         if f.sent != f.expected:
             for exp, got in zip_longest(f.expected, f.sent, fillvalue="—"):
-                lines.append(f"    oczekiwano: {exp}\n    otrzymano:  {got}")
+                lines.append(
+                    t(f"    oczekiwano: {exp}\n    otrzymano:  {got}", f"    expected: {exp}\n    got:      {got}")
+                )
     lines += [
         "",
-        f"Średni WER:            {report.wer:.1%}",
-        f"Interpunkcja (F1):     {report.punctuation_f1:.2f}",
-        f"Fałszywe wysyłki:      {report.false_sends}   (cel: 0)",
-        f"Pominięte hasła:       {report.missed_sends}",
-        f"Szybkość (RTF):        {report.real_time_factor:.2f}   (< 1 = szybciej niż mówisz)",
-        f"Najdłuższe czekanie po haśle: {report.max_send_latency:.2f}s",
+        t(f"Średni WER:            {report.wer:.1%}", f"Average WER:           {report.wer:.1%}"),
+        t(
+            f"Interpunkcja (F1):     {report.punctuation_f1:.2f}",
+            f"Punctuation (F1):      {report.punctuation_f1:.2f}",
+        ),
+        t(
+            f"Fałszywe wysyłki:      {report.false_sends}   (cel: 0)",
+            f"False sends:           {report.false_sends}   (goal: 0)",
+        ),
+        t(f"Pominięte hasła:       {report.missed_sends}", f"Missed phrases:        {report.missed_sends}"),
+        t(
+            f"Szybkość (RTF):        {report.real_time_factor:.2f}   (< 1 = szybciej niż mówisz)",
+            f"Speed (RTF):           {report.real_time_factor:.2f}   (< 1 = faster than you speak)",
+        ),
+        t(
+            f"Najdłuższe czekanie po haśle: {report.max_send_latency:.2f}s",
+            f"Longest wait after the phrase: {report.max_send_latency:.2f}s",
+        ),
     ]
     return "\n".join(lines)
