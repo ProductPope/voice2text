@@ -24,7 +24,7 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       - name: Install
@@ -45,13 +45,13 @@ jobs:
           choco install innosetup -y --no-progress
           $version = (python -c "import dictaitor; print(dictaitor.__version__)")
           & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" "/DVersion=$version" packaging\installer.iss
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: dictaitor-setup
           path: dist/dictaitor-setup-*.exe
       - name: Release
         if: startsWith(github.ref, 'refs/tags/v')
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: dist/dictaitor-setup-*.exe
           prerelease: ${{ contains(github.ref, 'b') }}
