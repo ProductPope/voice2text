@@ -41,5 +41,5 @@ pauses through the pipeline without a microphone — handy for pause/command cha
 
 ## Code of conduct
 
-Be kind and constructive. We follow the
-[Contributor Covenant 2.1](https://www.contributor-covenant.org/version/2/1/code_of_conduct/).
+Be kind and constructive – see [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
+(Contributor Covenant 2.1).
