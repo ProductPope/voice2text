@@ -25,6 +25,7 @@ from PySide6.QtWidgets import (
 from ..audio import chunker_for, microphone_frames
 from ..config import Config, home_dir
 from ..diagnostics import install_excepthook, setup_logging
+from ..i18n import set_language, t, ui_language
 from ..learning import LearnedStore
 from ..phrase import check_phrase
 from ..pipeline import Pipeline
@@ -42,13 +43,16 @@ COLORS = {
     State.PENDING: "#f29900",
     State.SENDING: "#1a73e8",
 }
-STATUS = {
-    State.LOADING: "Ładuję model mowy…",
-    State.IDLE: "Gotowy",
-    State.LISTENING: "Słucham – powiedz hasło, żeby wpisać",
-    State.PENDING: "Hasło rozpoznane",
-    State.SENDING: "Wpisuję",
-}
+
+
+def status_text(state: State) -> str:
+    return {
+        State.LOADING: t("Ładuję model mowy…", "Loading the speech model…"),
+        State.IDLE: t("Gotowy", "Ready"),
+        State.LISTENING: t("Słucham – powiedz hasło, żeby wpisać", "Listening – say the phrase to type"),
+        State.PENDING: t("Hasło rozpoznane", "Phrase recognised"),
+        State.SENDING: t("Wpisuję", "Typing"),
+    }[state]
 
 
 def dot_icon(color: str, cloud: bool = False) -> QIcon:
@@ -128,7 +132,7 @@ class Engine(QObject):
             self.ready.emit(f"Model {c.model}, {where}{note}")
         except Exception as exc:
             log.exception("model load failed")
-            self.failed.emit(f"Nie udało się załadować modelu: {exc}")
+            self.failed.emit(t(f"Nie udało się załadować modelu: {exc}", f"Couldn't load the model: {exc}"))
 
     def start(self, context: str = "") -> None:
         if self._thread and self._thread.is_alive():
@@ -189,7 +193,7 @@ class Engine(QObject):
                         self.preview.emit(text)
         except Exception as exc:
             log.exception("microphone loop failed")
-            self.failed.emit(f"Problem z mikrofonem: {exc}")
+            self.failed.emit(t(f"Problem z mikrofonem: {exc}", f"Microphone problem: {exc}"))
 
     def send_now(self) -> None:
         self._send_now.set()
@@ -243,7 +247,7 @@ class Engine(QObject):
                     if got >= utterances or self._capture_stop.is_set():
                         break
             except Exception as exc:
-                self.failed.emit(f"Problem z mikrofonem: {exc}")
+                self.failed.emit(t(f"Problem z mikrofonem: {exc}", f"Microphone problem: {exc}"))
             self.capture_done.emit()
 
         self._capture_stop.clear()
@@ -277,10 +281,12 @@ class Overlay(QWidget):
         self.status.setFont(bold)
         # Clicking never activates this window (it doesn't take focus), so the text
         # still goes into the window you were dictating into.
-        self.send_button = QPushButton("Wyślij")
+        self.send_button = QPushButton(t("Wyślij", "Send"))
         self.send_button.setCursor(Qt.PointingHandCursor)
         self.send_button.setFocusPolicy(Qt.NoFocus)
-        self.send_button.setToolTip("Wyślij teraz – tak jak po powiedzeniu hasła")
+        self.send_button.setToolTip(
+            t("Wyślij teraz – tak jak po powiedzeniu hasła", "Send now – same as saying the phrase")
+        )
         self.send_button.setStyleSheet(
             "QPushButton { background: #1a73e8; color: white; border: none; border-radius: 6px;"
             " padding: 4px 14px; font-weight: bold; }"
@@ -288,10 +294,15 @@ class Overlay(QWidget):
         )
         self.send_button.clicked.connect(lambda: self.on_send and self.on_send())
         self.on_send = None  # set to Controller.send_now in main()
-        self.cancel_button = QPushButton("Anuluj")
+        self.cancel_button = QPushButton(t("Anuluj", "Cancel"))
         self.cancel_button.setCursor(Qt.PointingHandCursor)
         self.cancel_button.setFocusPolicy(Qt.NoFocus)
-        self.cancel_button.setToolTip("Przerwij – nic nie zostanie wysłane (szkic odzyskasz z menu kółka)")
+        self.cancel_button.setToolTip(
+            t(
+                "Przerwij – nic nie zostanie wysłane (szkic odzyskasz z menu kółka)",
+                "Stop – nothing will be sent (recover the draft from the tray menu)",
+            )
+        )
         self.cancel_button.setStyleSheet(
             "QPushButton { background: transparent; color: #bdc1c6; border: 1px solid #5f6368;"
             " border-radius: 6px; padding: 4px 12px; }"
@@ -315,7 +326,7 @@ class Overlay(QWidget):
     def update_view(self, state: State, draft: str, detail: str) -> None:
         self._hide_timer.stop()
         color = COLORS[state]
-        status = STATUS[state] + (f" – {detail}" if detail else "")
+        status = status_text(state) + (f" – {detail}" if detail else "")
         self.status.setText(f'<span style="color:{color}">●</span> {status}')
         for button in (self.send_button, self.cancel_button):
             button.setVisible(state in (State.LISTENING, State.PENDING))
@@ -357,8 +368,8 @@ class QtUI:
 
     def show(self, state: State, draft: str = "", detail: str = "") -> None:
         self.tray.setIcon(dot_icon(COLORS[state], self.cloud))
-        suffix = " – porządkowanie przez Claude (chmura)" if self.cloud else ""
-        self.tray.setToolTip(f"dictAItor – {STATUS[state]}{suffix}")
+        suffix = t(" – porządkowanie przez Claude (chmura)", " – clean-up by Claude (cloud)") if self.cloud else ""
+        self.tray.setToolTip(f"dictAItor – {status_text(state)}{suffix}")
         self.overlay.update_view(state, draft, detail)
 
     def preview(self, text: str) -> None:
@@ -403,9 +414,17 @@ def main() -> int:
 
     home = home_dir()
     home.mkdir(parents=True, exist_ok=True)
+    set_language(ui_language(Config.load(home / "config.toml")))
     lock = QLockFile(str(home / "app.lock"))
     if not lock.tryLock(5000):  # a restarting instance may still be closing
-        QMessageBox.information(None, "dictAItor", "dictAItor już działa – szukaj kółka przy zegarze (strzałka ^).")
+        QMessageBox.information(
+            None,
+            "dictAItor",
+            t(
+                "dictAItor już działa – szukaj kółka przy zegarze (strzałka ^).",
+                "dictAItor is already running – look for the dot next to the clock (the ^ arrow).",
+            ),
+        )
         return 0
     log_path = setup_logging(home)
 
@@ -453,8 +472,12 @@ def main() -> int:
     install_excepthook(lambda message: bridge.call.emit(lambda: ui.notify(message)))
     engine.downloading.connect(
         lambda model: ui.notify(
-            f"Pierwsze uruchomienie: pobieram model mowy „{model}” (kilkaset MB). "
-            "To potrwa kilka minut – kółko zmieni kolor, gdy będzie gotowe."
+            t(
+                f"Pierwsze uruchomienie: pobieram model mowy „{model}” (kilkaset MB). "
+                "To potrwa kilka minut – kółko zmieni kolor, gdy będzie gotowe.",
+                f"First start: downloading the speech model “{model}” (a few hundred MB). "
+                "This takes a few minutes – the dot changes colour when it's ready.",
+            )
         )
     )
     config_path = home / "config.toml"
@@ -474,7 +497,12 @@ def main() -> int:
 
     def test_phrase(phrase: str):
         if controller.state is not State.IDLE:
-            ui.notify("Test hasła działa, gdy model jest gotowy i nie dyktujesz.")
+            ui.notify(
+                t(
+                    "Test hasła działa, gdy model jest gotowy i nie dyktujesz.",
+                    "The phrase test works when the model is ready and you are not dictating.",
+                )
+            )
             return
         dialog = PhraseTestDialog(phrase)
         windows["phrase"] = dialog
@@ -499,7 +527,12 @@ def main() -> int:
 
     def saved():
         answer = QMessageBox.question(
-            None, "dictAItor", "Zapisano. Uruchomić aplikację ponownie, żeby zmiany zadziałały?"
+            None,
+            "dictAItor",
+            t(
+                "Zapisano. Uruchomić aplikację ponownie, żeby zmiany zadziałały?",
+                "Saved. Restart the app so the changes take effect?",
+            ),
         )
         if answer == QMessageBox.Yes:
             restart()
@@ -509,23 +542,27 @@ def main() -> int:
         bring_to_front(windows["settings"])
 
     menu = QMenu()
-    dictate = QAction("Dyktuj")
+    dictate = QAction(t("Dyktuj", "Dictate"))
     dictate.triggered.connect(controller.toggle)
-    correct = QAction("Popraw ostatni tekst")
+    correct = QAction(t("Popraw ostatni tekst", "Correct last text"))
     correct.triggered.connect(controller.correct)
-    rules = QAction("Czego się nauczyłem…")
+    rules = QAction(t("Czego się nauczyłem…", "What I have learned…"))
     rules.triggered.connect(open_rules)
-    recover = QAction("Skopiuj ostatni niewysłany szkic")
+    recover = QAction(t("Skopiuj ostatni niewysłany szkic", "Copy the last unsent draft"))
     recover.triggered.connect(
-        lambda: ui.notify("Szkic jest w schowku." if controller.copy_last_unsent() else "Brak niewysłanego szkicu.")
+        lambda: ui.notify(
+            t("Szkic jest w schowku.", "The draft is on the clipboard.")
+            if controller.copy_last_unsent()
+            else t("Brak niewysłanego szkicu.", "No unsent draft.")
+        )
     )
-    show_log = QAction("Dziennik błędów (do zgłoszenia problemu)")
+    show_log = QAction(t("Dziennik błędów (do zgłoszenia problemu)", "Error log (for reporting a problem)"))
     show_log.triggered.connect(lambda: open_path(log_path))
-    settings = QAction("Ustawienia…")
+    settings = QAction(t("Ustawienia…", "Settings…"))
     settings.triggered.connect(open_settings)
-    restart_action = QAction("Uruchom ponownie")
+    restart_action = QAction(t("Uruchom ponownie", "Restart"))
     restart_action.triggered.connect(restart)
-    quit_action = QAction("Zakończ")
+    quit_action = QAction(t("Zakończ", "Quit"))
     quit_action.triggered.connect(app.quit)
     for action in (dictate, correct, rules, recover):
         menu.addAction(action)
@@ -540,10 +577,12 @@ def main() -> int:
         ui.notify(warning)
     spec = controller.register_hotkey()
     if spec:
-        dictate.setText(f"Dyktuj ({spec.upper()})")
+        dictate.setText(t(f"Dyktuj ({spec.upper()})", f"Dictate ({spec.upper()})"))
     correct_spec = controller.register_correct_hotkey()
     if correct_spec:
-        correct.setText(f"Popraw ostatni tekst ({correct_spec.upper()})")
+        correct.setText(
+            t(f"Popraw ostatni tekst ({correct_spec.upper()})", f"Correct last text ({correct_spec.upper()})")
+        )
     ui.show(State.LOADING)
     engine.load()
     return app.exec()

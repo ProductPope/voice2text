@@ -7,6 +7,7 @@ from dataclasses import dataclass
 
 from .composer import Word
 from .config import Config
+from .i18n import t
 from .textutil import norm, similarity
 
 # Phrases Whisper is known to invent on silence or noise (it was trained on
@@ -93,7 +94,10 @@ class Transcriber:
                 raise
             # An NVIDIA card without the CUDA libraries (cuBLAS/cuDNN) is common
             # on Windows; it only fails once the model actually runs.
-            self.warning = f"Karta graficzna niedostępna ({exc.__class__.__name__}: {exc}); używam procesora."
+            self.warning = t(
+                f"Karta graficzna niedostępna ({exc.__class__.__name__}: {exc}); używam procesora.",
+                f"Graphics card unavailable ({exc.__class__.__name__}: {exc}); using the processor.",
+            )
             self.choice = resolve_model(config, allow_gpu=False)
             self.model = self._load(WhisperModel, self.choice)
         self.set_vocabulary(list(config["rules"]["vocabulary"]) + list(extra_vocabulary or []))

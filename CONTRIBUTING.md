@@ -32,7 +32,10 @@ pauses through the pipeline without a microphone — handy for pause/command cha
   is sent or typed when it shouldn't be.
 - **Nothing leaves the machine by default.** New network calls must be opt-in and
   documented in SECURITY.md.
-- Keep Polish defaults, but make new phrases/commands configurable for other languages.
+- Language presets (safe phrases, voice commands, pause words) live in `LANGUAGES` in
+  `src/dictaitor/config.py`; adding a language starts there.
+- Every message a user can see is written as `t("polski", "English")` (`dictaitor.i18n`),
+  so both versions change together.
 - Run `pytest` (and `dictaitor eval` on your samples if you touched recognition or pauses)
   before opening a pull request.
 

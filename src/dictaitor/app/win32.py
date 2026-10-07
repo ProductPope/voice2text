@@ -15,6 +15,7 @@ import time
 from collections.abc import Callable
 from ctypes import wintypes
 
+from ..i18n import t
 from .hotkeys import Hotkey
 
 user32 = ctypes.WinDLL("user32", use_last_error=True)
@@ -125,7 +126,10 @@ def _send(inputs: list[INPUT]) -> None:
     arr = (INPUT * len(inputs))(*inputs)
     sent = user32.SendInput(len(inputs), arr, ctypes.sizeof(INPUT))
     if sent != len(inputs):
-        raise OSError(ctypes.get_last_error(), "SendInput nie wysłał wszystkich znaków")
+        raise OSError(
+            ctypes.get_last_error(),
+            t("SendInput nie wysłał wszystkich znaków", "SendInput did not send all characters"),
+        )
 
 
 def _process_elevated(process) -> bool | None:
@@ -253,7 +257,7 @@ class WindowsPlatform:
             if user32.OpenClipboard(None):
                 return
             time.sleep(0.05)
-        raise OSError("schowek jest zajęty przez inny program")
+        raise OSError(t("schowek jest zajęty przez inny program", "the clipboard is in use by another program"))
 
     def get_clipboard(self) -> str | None:
         self._open_clipboard()

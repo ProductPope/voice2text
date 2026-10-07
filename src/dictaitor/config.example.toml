@@ -87,6 +87,7 @@ hotkey = "ctrl+alt+d"       # start/stop dyktowania
 abort_seconds = 0.8         # czas na rozmyślenie się po haśle (Esc anuluje); 0 = od razu
 delivery = "auto"           # auto | type (wpisuj) | paste (wklejaj) | clipboard (tylko schowek)
 paste_over_chars = 300      # dłuższe teksty są wklejane zamiast wpisywane
+ui_language = "auto"        # język menu: auto (jak general.language) | pl | en
 
 [audio]
 vad = "auto"            # silero (dokładny) | energy (prosty próg głośności) | auto

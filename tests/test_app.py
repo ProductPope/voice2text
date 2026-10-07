@@ -588,3 +588,48 @@ def test_overlay_cancel_button(qapp):
     assert overlay.cancel_button.isVisibleTo(overlay)
     overlay.cancel_button.click()
     assert clicks == [1]
+
+
+# ----------------------------------------------------------- English UI
+
+
+@pytest.fixture
+def english():
+    from dictaitor import i18n
+
+    i18n.set_language("en")
+    yield
+    i18n.set_language("pl")
+
+
+def test_ui_language_follows_dictation_language_unless_set():
+    from dictaitor import i18n
+    from dictaitor.config import Config
+
+    assert i18n.ui_language(Config()) == "pl"
+    assert i18n.ui_language(Config.from_dict({"general": {"language": "en"}})) == "en"
+    assert i18n.ui_language(Config.from_dict({"app": {"ui_language": "en"}})) == "en"
+    assert i18n.set_language("de") == "en"  # unsupported -> English
+    i18n.set_language("pl")
+
+
+def test_controller_messages_in_english(english):
+    c, platform, engine, ui, clock = make()
+    c.toggle()
+    engine.draft = "unsent"
+    c.toggle()
+    assert ui.notes[-1].startswith("Stopped – nothing was sent")
+    c.correct()
+    assert ui.notes[-1] == "Nothing has been sent in this session yet."
+
+
+def test_dialogs_and_overlay_in_english(qapp, english, tmp_path):
+    from dictaitor.app.dialogs import SettingsDialog
+    from dictaitor.app.ui import Overlay, status_text
+    from dictaitor.config import Config
+
+    assert Overlay().send_button.text() == "Send"
+    assert status_text(State.IDLE) == "Ready"
+    d = SettingsDialog(Config(), tmp_path / "c.toml", lambda p: None, lambda: None)
+    assert d.windowTitle() == "dictAItor – settings"
+    assert d.model.itemText(0) == "Automatic (recommended)"
