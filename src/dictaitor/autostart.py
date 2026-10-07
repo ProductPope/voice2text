@@ -6,6 +6,8 @@ import os
 import sys
 from pathlib import Path
 
+from .i18n import t
+
 RUN_KEY = r"Software\Microsoft\Windows\CurrentVersion\Run"
 VALUE = "dictAItor"
 
@@ -33,7 +35,7 @@ def is_enabled() -> bool:
 
 def set_enabled(enabled: bool) -> None:
     if os.name != "nt":
-        raise OSError("autostart jest dostępny tylko na Windows")
+        raise OSError(t("autostart jest dostępny tylko na Windows", "start with Windows is only available on Windows"))
     import winreg
 
     # CreateKeyEx also opens the key; it may not exist yet on a fresh user profile.

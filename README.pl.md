@@ -17,6 +17,7 @@ Lokalne dyktowanie, które:
 Dyktować można po polsku (z angielskimi wtrąceniami) albo po angielsku – każdy język ma
 własne hasło, komendy głosowe i słowa „do namysłu”. Zmiana: **Ustawienia… → Język dyktowania**
 albo `general.language = "en"` (hasło: „send it now”, komendy: „period”, „new line”, „scratch that”).
+Menu i komunikaty aplikacji są wtedy po angielsku (osobno: `app.ui_language = "pl"` albo `"en"`).
 
 ## Instalacja
 

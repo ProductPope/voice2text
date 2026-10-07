@@ -12,6 +12,7 @@ from . import output
 from .composer import Composer, Word
 from .config import Config, home_dir
 from .gate import Action, Gate
+from .i18n import t
 from .intent import refine
 from .learning import LearnedStore, apply_replacements
 
@@ -91,7 +92,9 @@ class Session:
             if self.confirm:
                 draft = self.draft()
                 if not draft:
-                    return Event(Action.CONTINUE, "", info="pusty szkic, nic nie wysłano")
+                    return Event(
+                        Action.CONTINUE, "", info=t("pusty szkic, nic nie wysłano", "empty draft, nothing was sent")
+                    )
                 self.pending = draft
                 return Event(Action.PENDING, draft)
             return self._send()
@@ -103,7 +106,9 @@ class Session:
             return Event(Action.PENDING, self.pending)
         draft = self.draft()
         if not draft:
-            return Event(Action.CONTINUE, "", info="Nic jeszcze nie zostało podyktowane.")
+            return Event(
+                Action.CONTINUE, "", info=t("Nic jeszcze nie zostało podyktowane.", "Nothing has been dictated yet.")
+            )
         if self.confirm:
             self.pending = draft
             return Event(Action.PENDING, draft)
@@ -138,7 +143,7 @@ class Session:
     def _send(self) -> Event:
         draft = self.draft()
         if not draft:
-            return Event(Action.CONTINUE, "", info="pusty szkic, nic nie wysłano")
+            return Event(Action.CONTINUE, "", info=t("pusty szkic, nic nie wysłano", "empty draft, nothing was sent"))
         boundaries = list(self.composer.boundaries)
         final = draft
         notes = []
@@ -151,14 +156,18 @@ class Session:
             final = self.reviewer(shown)
             if not final:
                 self._new_composer()
-                return Event(Action.CANCEL, "", info="pusty tekst po edycji, nic nie wysłano")
+                return Event(
+                    Action.CANCEL,
+                    "",
+                    info=t("pusty tekst po edycji, nic nie wysłano", "empty text after editing, nothing was sent"),
+                )
             # Only the user's own edits teach word rules (not the LLM's);
             # pauses are matched against the raw draft they were measured on.
             learned = self.store.learn_words(shown, final)
             self.store.learn_pauses(final, boundaries)
             self.store.save()
             if learned:
-                notes.append("zapamiętano: " + ", ".join(f"{a} → {b}" for a, b in learned))
+                notes.append(t("zapamiętano: ", "learned: ") + ", ".join(f"{a} → {b}" for a, b in learned))
         notes.insert(0, self.sink(final))
         self.last_sent, self.last_boundaries = final, boundaries
         self._new_composer()

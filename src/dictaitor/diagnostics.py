@@ -15,6 +15,7 @@ from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
 from . import __version__
+from .i18n import t
 
 log = logging.getLogger("dictaitor")
 
@@ -43,7 +44,12 @@ def install_excepthook(report: Callable[[str], None]) -> None:
     def handle(exc_type, exc, tb):
         log.error("unhandled error", exc_info=(exc_type, exc, tb))
         try:
-            report(f"Wystąpił nieoczekiwany błąd ({exc_type.__name__}). Szczegóły są w dzienniku – menu kółka.")
+            report(
+                t(
+                    f"Wystąpił nieoczekiwany błąd ({exc_type.__name__}). Szczegóły są w dzienniku – menu kółka.",
+                    f"An unexpected error occurred ({exc_type.__name__}). Details are in the log – see the tray menu.",
+                )
+            )
         except Exception:
             pass
 

@@ -23,8 +23,9 @@ Local dictation for people who think while they talk:
 Dictation languages: **English** and **Polish** (with English tech terms mixed in) come with
 their own safe phrases, voice commands ("period", "new line", "scratch that"…) and pause
 words — pick one in Settings or set `general.language = "en"`. Other Whisper languages
-work too; set the phrases and commands yourself in `config.toml`. The app's menus are in
-Polish for now.
+work too; set the phrases and commands yourself in `config.toml`. The app's menus and
+messages follow the dictation language (English for anything but Polish); set
+`app.ui_language` to choose them separately.
 
 ## Install
 

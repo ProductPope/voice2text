@@ -22,6 +22,7 @@ from dataclasses import dataclass
 from urllib.parse import urlparse
 
 from .config import Config
+from .i18n import t
 from .textutil import norm, similarity
 
 LOCAL_HOSTS = {"localhost", "127.0.0.1", "::1"}
@@ -75,27 +76,27 @@ def build_prompt(draft: str, instructions: str, examples: list[tuple[str, str]])
 def suspicious(draft: str, result: str, language: str = "pl") -> str:
     """Why the result can't be trusted, or "" when it looks like a faithful clean-up."""
     if not result.strip():
-        return "model zwrócił pusty tekst"
+        return t("model zwrócił pusty tekst", "the model returned empty text")
     d, r = norm(draft).split(), norm(result).split()
     if len(r) > len(d) * 1.25 + 4:
-        return "model dopisał treść"
+        return t("model dopisał treść", "the model added content")
     known = set(d)
     new = [w for w in r if w not in known]
     if len(new) > max(3, len(r) // 4):
-        return "model zmienił zbyt wiele słów"
+        return t("model zmienił zbyt wiele słów", "the model changed too many words")
     # A legitimate fix turns a misheard word into a close variant ("wy" -> "w",
     # "stegingu" -> "stagingu"). A word with no look-alike in the draft was invented
     # (measured: a local model wrote "wyciągnemy" into a sentence that never had it).
     for word in new:
         if len(word) >= 4 and max((similarity(word, k) for k in known), default=0.0) < 0.65:
-            return f"model dopisał słowo „{word}”"
+            return t(f"model dopisał słowo „{word}”", f"the model added the word “{word}”")
     # "w poniedziałek, nie, we wtorek": the words after the correction are what you
     # meant. A model that kept the old option instead (measured with a 7B local
     # model) would reverse your message, so its result is not used.
     kept = set(r)
     for meant in corrected_words(draft, language):
         if meant not in kept:
-            return f"model pominął Twoją poprawkę („{meant}”)"
+            return t(f"model pominął Twoją poprawkę („{meant}”)", f"the model dropped your correction (“{meant}”)")
     return ""
 
 
@@ -134,7 +135,12 @@ def call_local(system: str, user: str, cfg: dict) -> str:
     url = cfg["local_url"].rstrip("/")
     host = urlparse(url).hostname or ""
     if host not in LOCAL_HOSTS and not cfg["allow_remote"]:
-        raise IntentError(f"intent.local_url wskazuje na {host!r}, a nie na ten komputer – zablokowano.")
+        raise IntentError(
+            t(
+                f"intent.local_url wskazuje na {host!r}, a nie na ten komputer – zablokowano.",
+                f"intent.local_url points to {host!r}, not to this computer – blocked.",
+            )
+        )
     body = json.dumps(
         {
             "model": cfg["local_model"],
@@ -149,11 +155,18 @@ def call_local(system: str, user: str, cfg: dict) -> str:
         with opener.open(req, timeout=float(cfg["timeout"])) as resp:
             data = json.loads(resp.read())
     except OSError as exc:
-        raise IntentError(f"lokalny model nie odpowiada ({exc}) – czy Ollama/LM Studio jest uruchomione?") from exc
+        raise IntentError(
+            t(
+                f"lokalny model nie odpowiada ({exc}) – czy Ollama/LM Studio jest uruchomione?",
+                f"the local model is not responding ({exc}) – is Ollama/LM Studio running?",
+            )
+        ) from exc
     try:
         return data["choices"][0]["message"]["content"]
     except (KeyError, IndexError, TypeError) as exc:
-        raise IntentError("nieoczekiwana odpowiedź lokalnego modelu") from exc
+        raise IntentError(
+            t("nieoczekiwana odpowiedź lokalnego modelu", "unexpected reply from the local model")
+        ) from exc
 
 
 def get_api_key() -> str | None:
@@ -189,7 +202,9 @@ def call_claude(system: str, user: str, cfg: dict, client=None) -> str:
     if client is None:
         key = get_api_key()
         if not key:
-            raise IntentError("brak klucza API Claude – dodaj go w Ustawieniach")
+            raise IntentError(
+                t("brak klucza API Claude – dodaj go w Ustawieniach", "no Claude API key – add it in Settings")
+            )
         client = anthropic.Anthropic(api_key=key, timeout=float(cfg["timeout"]), max_retries=1)
     model = cfg["claude_model"]
     kwargs = dict(
@@ -206,15 +221,17 @@ def call_claude(system: str, user: str, cfg: dict, client=None) -> str:
     try:
         response = client.beta.messages.create(**kwargs)
     except anthropic.AuthenticationError as exc:
-        raise IntentError("klucz API Claude jest nieprawidłowy") from exc
+        raise IntentError(t("klucz API Claude jest nieprawidłowy", "the Claude API key is invalid")) from exc
     except anthropic.RateLimitError as exc:
-        raise IntentError("limit zapytań Claude – spróbuj za chwilę") from exc
+        raise IntentError(
+            t("limit zapytań Claude – spróbuj za chwilę", "Claude rate limit – try again in a moment")
+        ) from exc
     except anthropic.APIConnectionError as exc:
-        raise IntentError("brak połączenia z Claude") from exc
+        raise IntentError(t("brak połączenia z Claude", "can't connect to Claude")) from exc
     except anthropic.APIStatusError as exc:
-        raise IntentError(f"błąd Claude API ({exc.status_code})") from exc
+        raise IntentError(t(f"błąd Claude API ({exc.status_code})", f"Claude API error ({exc.status_code})")) from exc
     if response.stop_reason == "refusal":
-        raise IntentError("Claude odmówił przetworzenia tego tekstu")
+        raise IntentError(t("Claude odmówił przetworzenia tego tekstu", "Claude declined to process this text"))
     return "".join(block.text for block in response.content if block.type == "text")
 
 
@@ -250,10 +267,22 @@ def refine(draft: str, config: Config, examples: list[tuple[str, str]], window_t
     try:
         result = _clean(BACKENDS[mode](system, user, cfg))
     except IntentError as exc:
-        return Refined(draft, f"porządkowanie AI pominięte: {exc}")
+        return Refined(draft, t(f"porządkowanie AI pominięte: {exc}", f"AI clean-up skipped: {exc}"))
     except Exception as exc:  # never lose the dictation because of the LLM step
-        return Refined(draft, f"porządkowanie AI pominięte: {exc.__class__.__name__}: {exc}")
+        return Refined(
+            draft,
+            t(
+                f"porządkowanie AI pominięte: {exc.__class__.__name__}: {exc}",
+                f"AI clean-up skipped: {exc.__class__.__name__}: {exc}",
+            ),
+        )
     reason = suspicious(draft, result, config["general"]["language"])
     if reason:
-        return Refined(draft, f"wynik AI odrzucony ({reason}) – wysłano tekst bez zmian")
+        return Refined(
+            draft,
+            t(
+                f"wynik AI odrzucony ({reason}) – wysłano tekst bez zmian",
+                f"AI result rejected ({reason}) – the text was sent unchanged",
+            ),
+        )
     return Refined(result, used=mode)

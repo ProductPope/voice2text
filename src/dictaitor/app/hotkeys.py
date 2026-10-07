@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from ..i18n import t
+
 MOD_ALT, MOD_CONTROL, MOD_SHIFT, MOD_WIN = 0x1, 0x2, 0x4, 0x8
 _MODS = {"alt": MOD_ALT, "ctrl": MOD_CONTROL, "control": MOD_CONTROL, "shift": MOD_SHIFT, "win": MOD_WIN}
 _NAMED_KEYS = {
@@ -42,7 +44,7 @@ class Hotkey:
 def parse(spec: str) -> Hotkey:
     parts = [p.strip().lower() for p in spec.replace(" ", "").split("+") if p.strip()]
     if not parts:
-        raise HotkeyError("pusty skrót")
+        raise HotkeyError(t("pusty skrót", "empty hotkey"))
     *mods, key = parts
     modifiers = 0
     for m in mods:
@@ -57,10 +59,18 @@ def parse(spec: str) -> Hotkey:
         raise HotkeyError(f"nieznany klawisz: {key}")
     if modifiers & MOD_CONTROL and modifiers & MOD_ALT and key in ALTGR_LETTERS:
         raise HotkeyError(
-            f"{spec} to na polskiej klawiaturze AltGr+{key.upper()} – zablokowałby wpisywanie polskiej litery"
+            t(
+                f"{spec} to na polskiej klawiaturze AltGr+{key.upper()} – zablokowałby wpisywanie polskiej litery",
+                f"{spec} is AltGr+{key.upper()} on many keyboard layouts – it would block typing a letter",
+            )
         )
     if not modifiers and not key.startswith("f"):
-        raise HotkeyError(f"{spec}: zwykły klawisz bez Ctrl/Alt przechwyciłby normalne pisanie")
+        raise HotkeyError(
+            t(
+                f"{spec}: zwykły klawisz bez Ctrl/Alt przechwyciłby normalne pisanie",
+                f"{spec}: a plain key without Ctrl/Alt would swallow normal typing",
+            )
+        )
     return Hotkey(spec, modifiers, vk)
 
 

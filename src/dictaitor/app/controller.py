@@ -14,6 +14,7 @@ from enum import Enum
 from typing import Protocol
 
 from ..gate import Action
+from ..i18n import t
 from ..session import Event
 from . import hotkeys
 from .platform import Platform
@@ -64,11 +65,21 @@ def choose_delivery(text: str, target: int, platform: Platform, mode: str, paste
         platform.focus_window(target)
         current = platform.foreground_window()
     if not target or current != target:
-        return Delivery("clipboard", "Aktywne okno się zmieniło – tekst czeka w schowku (Ctrl+V).")
+        return Delivery(
+            "clipboard",
+            t(
+                "Aktywne okno się zmieniło – tekst czeka w schowku (Ctrl+V).",
+                "The active window changed – the text is on the clipboard (Ctrl+V).",
+            ),
+        )
     if platform.is_elevated_window(target):
         return Delivery(
             "clipboard",
-            "To okno działa jako administrator i Windows nie pozwala do niego pisać – tekst jest w schowku.",
+            t(
+                "To okno działa jako administrator i Windows nie pozwala do niego pisać – tekst jest w schowku.",
+                "That window runs as administrator and Windows won't let other apps type into it"
+                " – the text is on the clipboard.",
+            ),
         )
     # A typed newline is Enter: in a chat or in Claude Code it would send half
     # the message. Multi-line (and long) text is pasted instead.
@@ -107,11 +118,23 @@ class Controller:
                 log.info("dictation hotkey: %s", spec)
                 self.hotkey = hk
                 if spec != self.cfg["hotkey"]:
-                    reason = problems[0] if problems else f"{self.cfg['hotkey']} jest zajęty przez inny program"
-                    self.ui.notify(f"{reason}. Używam {spec}.")
+                    reason = (
+                        problems[0]
+                        if problems
+                        else t(
+                            f"{self.cfg['hotkey']} jest zajęty przez inny program",
+                            f"{self.cfg['hotkey']} is taken by another program",
+                        )
+                    )
+                    self.ui.notify(t(f"{reason}. Używam {spec}.", f"{reason}. Using {spec}."))
                 return spec
-            problems.append(f"{spec} jest zajęty przez inny program")
-        self.ui.notify("Nie udało się ustawić żadnego skrótu – użyj menu w zasobniku.")
+            problems.append(t(f"{spec} jest zajęty przez inny program", f"{spec} is taken by another program"))
+        self.ui.notify(
+            t(
+                "Nie udało się ustawić żadnego skrótu – użyj menu w zasobniku.",
+                "Couldn't set any hotkey – use the tray menu.",
+            )
+        )
         return None
 
     def register_correct_hotkey(self) -> str | None:
@@ -121,11 +144,16 @@ class Controller:
         try:
             hk = hotkeys.parse(spec)
         except hotkeys.HotkeyError as exc:
-            self.ui.notify(f"Skrót „popraw ostatni”: {exc}")
+            self.ui.notify(t(f"Skrót „popraw ostatni”: {exc}", f"“Correct last” hotkey: {exc}"))
             return None
         if self.platform.register_hotkey(hk, self.correct):
             return spec
-        self.ui.notify(f"Skrót „popraw ostatni” ({spec}) jest zajęty – użyj menu w zasobniku.")
+        self.ui.notify(
+            t(
+                f"Skrót „popraw ostatni” ({spec}) jest zajęty – użyj menu w zasobniku.",
+                f"The “correct last” hotkey ({spec}) is taken – use the tray menu.",
+            )
+        )
         return None
 
     def on_ready(self, description: str) -> None:
@@ -145,7 +173,12 @@ class Controller:
 
     def toggle(self) -> None:
         if self.state is State.LOADING:
-            self.ui.notify("Jeszcze ładuję model mowy – za chwilę będzie gotowy.")
+            self.ui.notify(
+                t(
+                    "Jeszcze ładuję model mowy – za chwilę będzie gotowy.",
+                    "Still loading the speech model – almost ready.",
+                )
+            )
         elif self.state is State.IDLE:
             self.target = self.platform.foreground_window()
             title = self.platform.window_title(self.target)
@@ -156,12 +189,17 @@ class Controller:
             draft = self.engine.stop()
             if draft:
                 self.last_unsent = draft
-                self.ui.notify("Przerwano – nic nie wysłano. Szkic można odzyskać z menu w zasobniku.")
+                self.ui.notify(
+                    t(
+                        "Przerwano – nic nie wysłano. Szkic można odzyskać z menu w zasobniku.",
+                        "Stopped – nothing was sent. You can recover the draft from the tray menu.",
+                    )
+                )
             self._set(State.IDLE)
         elif self.state is State.PENDING:
             self.escape()
         elif self.state is State.SENDING:
-            self.ui.notify("Kończę przygotowywanie tekstu – chwilę.")
+            self.ui.notify(t("Kończę przygotowywanie tekstu – chwilę.", "Finishing the text – one moment."))
 
     def send_now(self) -> None:
         """The overlay's "Wyślij" button."""
@@ -183,7 +221,13 @@ class Controller:
             return
         self._stop_countdown()
         self.engine.cancel_pending()
-        self._set(State.LISTENING, detail="Anulowano wysyłkę – mów dalej albo powiedz hasło ponownie.")
+        self._set(
+            State.LISTENING,
+            detail=t(
+                "Anulowano wysyłkę – mów dalej albo powiedz hasło ponownie.",
+                "Send cancelled – keep talking or say the phrase again.",
+            ),
+        )
 
     def on_preview(self, text: str) -> None:
         if self.state is State.LISTENING:
@@ -200,7 +244,9 @@ class Controller:
         elif event.action is Action.CANCEL:
             self.engine.stop()
             self._set(State.IDLE)
-            self.ui.notify("Anulowano – szkic wyczyszczony, nic nie wysłano.")
+            self.ui.notify(
+                t("Anulowano – szkic wyczyszczony, nic nie wysłano.", "Cancelled – draft cleared, nothing was sent.")
+            )
         elif event.action is Action.PENDING and self.state is State.LISTENING:
             seconds = float(self.cfg["abort_seconds"])
             if seconds <= 0 or self._button_send:
@@ -208,7 +254,11 @@ class Controller:
                 self.state = State.PENDING
                 self._finish()
                 return
-            self._set(State.PENDING, draft=event.draft, detail=f"Wpisuję za {seconds:.1f} s – Esc anuluje")
+            self._set(
+                State.PENDING,
+                draft=event.draft,
+                detail=t(f"Wpisuję za {seconds:.1f} s – Esc anuluje", f"Typing in {seconds:.1f} s – Esc cancels"),
+            )
             self.platform.register_hotkey(ESCAPE, self.escape)
             self._cancel_timer = self.schedule(seconds, self._finish)
 
@@ -224,7 +274,7 @@ class Controller:
         if self.state is not State.PENDING and self.cfg["abort_seconds"] > 0:
             return
         self._stop_countdown()
-        detail = "porządkuję tekst…" if self.cfg.get("intent_mode", "off") != "off" else ""
+        detail = t("porządkuję tekst…", "tidying up the text…") if self.cfg.get("intent_mode", "off") != "off" else ""
         self._set(State.SENDING, detail=detail)
         self.engine.confirm(self._on_confirmed)
 
@@ -254,7 +304,13 @@ class Controller:
         except Exception as exc:
             log.exception("delivery by %s failed", delivery.method)
             self.platform.set_clipboard(text)
-            delivery = Delivery("clipboard", f"Nie udało się wpisać ({exc}) – tekst jest w schowku.")
+            delivery = Delivery(
+                "clipboard",
+                t(
+                    f"Nie udało się wpisać ({exc}) – tekst jest w schowku.",
+                    f"Couldn't type ({exc}) – the text is on the clipboard.",
+                ),
+            )
         # Only the method and length are logged, never the text itself.
         log.info("delivered %d chars by %s %s", len(text), delivery.method, delivery.reason[:40])
         self.last_sent = text
@@ -265,9 +321,11 @@ class Controller:
     def correct(self) -> None:
         """Ctrl+Alt+K: fix the last sent text so dictAItor learns from it."""
         if self.state in (State.LISTENING, State.PENDING, State.SENDING):
-            self.ui.notify("Najpierw dokończ albo przerwij dyktowanie.")
+            self.ui.notify(t("Najpierw dokończ albo przerwij dyktowanie.", "Finish or stop dictating first."))
         elif not self.last_sent:
-            self.ui.notify("Nic jeszcze nie zostało wysłane w tej sesji.")
+            self.ui.notify(
+                t("Nic jeszcze nie zostało wysłane w tej sesji.", "Nothing has been sent in this session yet.")
+            )
         else:
             self.ui.ask_correction(self.last_sent)
 
@@ -281,9 +339,15 @@ class Controller:
             self.platform.set_clipboard(corrected)
         if learned:
             rules = ", ".join(f"„{a}” → „{b}”" for a, b in learned)
-            self.ui.notify(f"Zapamiętane: {rules}. Po kolejnych takich poprawkach będę to robić sam.")
+            self.ui.notify(
+                t(
+                    f"Zapamiętane: {rules}. Po kolejnych takich poprawkach będę to robić sam.",
+                    f"Noted: {rules}. After a few more corrections like this I'll do it myself.",
+                )
+            )
         else:
-            self.ui.notify("Zapamiętane (styl i pauzy)." + (" Poprawiony tekst jest w schowku." if copy else ""))
+            clip = t(" Poprawiony tekst jest w schowku.", " The corrected text is on the clipboard.") if copy else ""
+            self.ui.notify(t("Zapamiętane (styl i pauzy).", "Noted (style and pauses).") + clip)
         return learned
 
     def copy_last_unsent(self) -> bool:

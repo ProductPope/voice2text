@@ -9,6 +9,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from .i18n import t
+
 # Language presets (general.language picks one); every list/map can be overridden
 # in config.toml. Polish is the default.
 DEFAULT_COMMANDS: dict[str, str] = {
@@ -231,6 +233,8 @@ DEFAULTS: dict[str, Any] = {
         "abort_seconds": 0.8,
         "delivery": "auto",  # auto | type | paste | clipboard
         "paste_over_chars": 300,
+        # Menus and messages: auto (same as general.language) | pl | en
+        "ui_language": "auto",
     },
     "audio": {
         "vad": "auto",  # auto | silero | energy
@@ -296,10 +300,18 @@ class Config:
             return cls(path=path)
         with path.open("rb") as fh:
             user = tomllib.load(fh)
-        warnings = [f"nieznane ustawienie w {path.name}: {k}" for k in unknown_keys(user)]
+        warnings = [
+            t(f"nieznane ustawienie w {path.name}: {k}", f"unknown setting in {path.name}: {k}")
+            for k in unknown_keys(user)
+        ]
         language = user.get("general", {}).get("language", DEFAULTS["general"]["language"])
         if language not in LANGUAGES:
-            warnings.append(f"general.language = {language!r}: hasła i komendy głosowe są tylko dla pl i en")
+            warnings.append(
+                t(
+                    f"general.language = {language!r}: hasła i komendy głosowe są tylko dla pl i en",
+                    f"general.language = {language!r}: phrases and voice commands are only built in for pl and en",
+                )
+            )
         return cls(data=_build(user), path=path, warnings=warnings)
 
     @classmethod
