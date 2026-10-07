@@ -159,8 +159,8 @@ Wszystko w `%APPDATA%\dictaitor\` jako czytelne pliki (TOML/JSON), z eksportem/i
 
 - Repo: README (EN + PL), LICENSE (MIT), CONTRIBUTING, CODE_OF_CONDUCT, SECURITY.md,
   szablony zgłoszeń, CHANGELOG, wersjonowanie SemVer.
-- UI i komunikaty: angielski + polski (Qt `tr`), komendy głosowe per język
-  (domyślne PL i EN) – żeby projekt był użyteczny poza Polską.
+- Komendy głosowe, hasła i słowa pauz per język ✅ (pl, en – `general.language`).
+  UI i komunikaty po angielsku (Qt `tr`) – do zrobienia, żeby projekt był użyteczny poza Polską.
 - Nazwa: **dictAItor** – „dictator” z AI w środku. Wolna na PyPI (`dictaitor`).
   Hasło: *„Ty dyktujesz. On czeka na rozkaz.”* / *„You dictate. It waits for your word.”*
   Do zrobienia przed publikacją: zmiana nazwy repozytorium na GitHubie

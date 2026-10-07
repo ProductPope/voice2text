@@ -206,3 +206,14 @@ def test_guard_protects_self_corrections():
     assert intent.suspicious(draft, "Spotkanie we wtorek o 10.") == ""
     assert intent.corrected_words("Nie wiem, czy zdążę.") == []
     assert intent.corrected_words("Wyślę ci raport, to znaczy, prezentację.") == ["prezentacje"]
+
+
+def test_guard_knows_english_self_corrections():
+    draft = "Let's meet on Monday, no, on Tuesday at ten."
+    assert intent.corrected_words(draft, "en") == ["tuesday"]
+    assert intent.suspicious(draft, "Let's meet on Monday at ten.", "en") != ""
+    assert intent.suspicious(draft, "Let's meet on Tuesday at ten.", "en") == ""
+    assert intent.corrected_words("I mean it, not later.", "en") == ["later"]
+    assert intent.corrected_words("No problem at all.", "en") == []
+    # Polish markers don't fire on English text and vice versa
+    assert intent.corrected_words("Spotkanie w poniedziałek, no dobra.", "pl") == []

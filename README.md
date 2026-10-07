@@ -6,7 +6,8 @@
 
 Local dictation for people who think while they talk:
 
-- **Nothing is sent until you say your safe phrase** (default: "wyślij teraz"), followed
+- **Nothing is sent until you say your safe phrase** (default: "send it now" in English,
+  "wyślij teraz" in Polish), followed
   by a pause. Saying it mid-sentence does nothing; a short countdown lets you press Esc.
 - **Understands pauses.** A pause after "and", "that", "in"… is thinking, not a full stop.
   Longer pauses become commas, long ones end the sentence.
@@ -19,8 +20,11 @@ Local dictation for people who think while they talk:
   say the phrase — the text is typed into that window. Multi-line text is pasted so a
   newline never sends a chat message half-way. Never presses Enter for you.
 
-Built for Polish with English tech terms mixed in; other Whisper languages work too
-(set `general.language`, voice commands and phrases are configurable).
+Dictation languages: **English** and **Polish** (with English tech terms mixed in) come with
+their own safe phrases, voice commands ("period", "new line", "scratch that"…) and pause
+words — pick one in Settings or set `general.language = "en"`. Other Whisper languages
+work too; set the phrases and commands yourself in `config.toml`. The app's menus are in
+Polish for now.
 
 ## Install
 

@@ -30,7 +30,8 @@ from PySide6.QtWidgets import (
 )
 
 from .. import autostart, intent
-from ..config import Config, update_file
+from ..config import LANGUAGES as PRESETS
+from ..config import Config, defaults_for, update_file
 from ..learning import LearnedStore
 from ..phrase import PhraseCheck
 from . import hotkeys
@@ -176,6 +177,11 @@ CLOUD_CONSENT = (
     "Kółko w zasobniku dostanie białą obwódkę, dopóki ta opcja jest włączona.\n\nWłączyć?"
 )
 
+LANGUAGES = [
+    ("pl", "polski (z angielskimi wtrąceniami)"),
+    ("en", "English"),
+]
+
 DELIVERY = [
     ("auto", "Wpisuj w okno (wielowierszowe – wklejaj)"),
     ("paste", "Zawsze wklejaj"),
@@ -194,6 +200,9 @@ class SettingsDialog(QDialog):
         self.resize(560, 360)
         form = QFormLayout()
         g, a = config["gate"], config["app"]
+        self.language = self._combo(LANGUAGES, config["general"]["language"])
+        self.language.currentIndexChanged.connect(self._language_changed)
+        form.addRow("Język dyktowania:", self.language)
         self.send_phrase = QLineEdit(g["send_phrase"])
         test = QPushButton("Sprawdź hasło…")
         test.clicked.connect(lambda: self.on_test_phrase(self.send_phrase.text().strip()))
@@ -262,6 +271,13 @@ class SettingsDialog(QDialog):
         box.setCurrentIndex(index)
         return box
 
+    def _language_changed(self) -> None:
+        # Swap the safe phrases to the new language's defaults, unless you chose your own.
+        new = defaults_for(self.language.currentData())["gate"]
+        for box, key in ((self.send_phrase, "send_phrase"), (self.cancel_phrase, "cancel_phrase")):
+            if box.text().strip() in {p["gate"][key] for p in PRESETS.values()}:
+                box.setText(new[key])
+
     def _mode_changed(self) -> None:
         mode = self.intent_mode.currentData()
         self.local_model.setEnabled(mode == "local")
@@ -309,7 +325,7 @@ class SettingsDialog(QDialog):
                     "abort_seconds": round(self.abort.value(), 1),
                     "delivery": self.delivery.currentData(),
                 },
-                "general": {"model": self.model.currentData()},
+                "general": {"model": self.model.currentData(), "language": self.language.currentData()},
                 "intent": {
                     "mode": mode,
                     "instructions": self.instructions.text().strip(),

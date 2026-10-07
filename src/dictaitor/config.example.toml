@@ -2,6 +2,8 @@
 # Każdą sekcję możesz pominąć – brakujące wartości biorą się z domyślnych.
 
 [general]
+# "pl" albo "en" – zmienia też domyślne hasła, komendy głosowe i słowa pauz
+# (po angielsku: „send it now”, „cancel everything”, „period”, „new line”, „scratch that”).
 language = "pl"
 # "auto" dobiera do sprzętu: large-v3-turbo na karcie NVIDIA lub CPU z 8+ rdzeniami,
 # w innym wypadku small. Ręcznie: tiny / base / small / medium / large-v3 / large-v3-turbo
