@@ -542,3 +542,32 @@ def test_overlay_send_button(qapp):
     assert clicks == [1]
     overlay.update_view(State.SENDING, "", "")
     assert not overlay.send_button.isVisibleTo(overlay)
+
+
+def test_cancel_button_while_listening_sends_nothing_and_keeps_draft():
+    c, platform, engine, ui, clock = make()
+    c.toggle()
+    engine.draft = "Jednak nie"
+    c.cancel()
+    assert c.state is State.IDLE and platform.typed == [] and c.last_unsent == "Jednak nie"
+
+
+def test_cancel_button_during_countdown_acts_like_esc():
+    c, platform, engine, ui, clock = make()
+    c.toggle()
+    say_safe_phrase(c, engine, "Tekst.")
+    c.cancel()
+    clock.fire()
+    assert c.state is State.LISTENING and platform.typed == [] and engine.cancelled == 1
+
+
+def test_overlay_cancel_button(qapp):
+    from dictaitor.app.ui import Overlay
+
+    overlay = Overlay()
+    clicks = []
+    overlay.on_cancel = lambda: clicks.append(1)
+    overlay.update_view(State.PENDING, "Szkic", "")
+    assert overlay.cancel_button.isVisibleTo(overlay)
+    overlay.cancel_button.click()
+    assert clicks == [1]

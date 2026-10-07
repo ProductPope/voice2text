@@ -2,7 +2,7 @@
 
 ## 0.9.0-beta (unreleased)
 
-- Windows tray app: `Ctrl+Alt+D` dictation, live overlay with a "Wyślij" (send) button, Esc countdown, typing into the
+- Windows tray app: `Ctrl+Alt+D` dictation, live overlay with "Wyślij" (send) and "Anuluj" (cancel) buttons, Esc countdown, typing into the
   window you started in (paste for multi-line, clipboard when unsafe).
 - `Ctrl+Alt+K` "correct last": learns words, names, pause rhythm and style.
 - Settings window, safe-phrase test, start with Windows, learned-rules window with
