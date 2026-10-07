@@ -18,7 +18,7 @@ jobs:
     if: ${{ github.event_name == 'workflow_dispatch' || !github.event.repository.private }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
@@ -37,7 +37,7 @@ jobs:
     env:
       QT_QPA_PLATFORM: offscreen  # Qt widgets without a display
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python }}
