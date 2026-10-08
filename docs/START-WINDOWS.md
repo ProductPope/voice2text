@@ -1,9 +1,33 @@
 # dictAItor na Windows – instrukcja krok po kroku
 
-Nie musisz nic programować ani wpisywać komend. Wszystko robisz dwuklikiem.
-Za pierwszym razem zajmie to ok. 15–20 minut (głównie czekanie na pobieranie).
+Nie musisz nic programować ani wpisywać komend.
 
 ---
+
+## Najprostszy sposób: instalator (zalecany)
+
+Bez Pythona i bez rozpakowywania – ok. 5 minut plus jednorazowe pobranie modelu mowy.
+
+1. Otwórz **https://github.com/ProductPope/voice2text/releases/latest**
+2. W sekcji **Assets** kliknij plik **`dictaitor-setup-….exe`** (np. `dictaitor-setup-1.0.0.exe`).
+3. Uruchom pobrany plik. Windows może pokazać „System Windows chronił ten komputer”
+   (program nie ma jeszcze podpisu cyfrowego) – kliknij **Więcej informacji → Uruchom mimo to**.
+4. Klikaj **Dalej**. Instalacja nie wymaga uprawnień administratora; możesz zaznaczyć
+   **uruchamianie razem z Windows**.
+5. Zezwól na mikrofon – patrz **Krok 3** niżej.
+6. Uruchom **dictAItor** z menu Start. Przy zegarze pojawi się kółko; za pierwszym razem
+   program pobierze model mowy (kilkaset MB) – kółko zmieni kolor, gdy będzie gotowy.
+7. Dalej postępuj jak w **Kroku 5b** (Ctrl+Alt+D, mów, „wyślij teraz”).
+
+Aktualizacja do nowej wersji: pobierz nowy instalator i uruchom go – ustawienia
+i to, czego dictAItor się nauczył, zostają.
+
+---
+
+## Sposób dla zaawansowanych: uruchomienie z kodu źródłowego
+
+Przydatne, jeśli chcesz testować najnowsze zmiany przed wydaniem. Wszystko robisz
+dwuklikiem; za pierwszym razem ok. 15–20 minut (głównie czekanie na pobieranie).
 
 ## Krok 1. Zainstaluj Pythona (jednorazowo)
 
@@ -21,8 +45,8 @@ Python to „silnik”, na którym działa dictAItor.
 
 ## Krok 2. Pobierz dictAItor
 
-1. Będąc zalogowanym na GitHubie, otwórz ten link – pobierze się plik ZIP:
-   **https://github.com/ProductPope/voice2text/archive/refs/heads/claude/brave-knuth-rn94tr.zip**
+1. Otwórz ten link – pobierze się plik ZIP z najnowszą wersją:
+   **https://github.com/ProductPope/voice2text/archive/refs/heads/main.zip**
 2. Otwórz folder **Pobrane**, kliknij prawym przyciskiem na pobrany plik ZIP
    → **Wyodrębnij wszystkie…**
 3. Jako miejsce wpisz **`C:\dictaitor`** i kliknij **Wyodrębnij**.
@@ -30,7 +54,7 @@ Python to „silnik”, na którym działa dictAItor.
    (Nie rozpakowuj do folderu synchronizowanego z OneDrive – program tworzy tysiące
    małych plików i OneDrive by się „zadławił”.)
 
-4. W środku będzie folder o długiej nazwie (np. `voice2text-claude-brave-knuth-rn94tr`),
+4. W środku będzie folder (np. `voice2text-main`),
    a w nim folder **`windows`** z sześcioma plikami:
 
    | Plik | Do czego |
@@ -95,7 +119,8 @@ nigdzie wysyłany.
 
 ## Krok 5b. Aplikacja w zasobniku (wygodniejsza)
 
-1. Dwuklik **`6-aplikacja.bat`**. Nie pojawi się żadne okno – w prawym dolnym rogu,
+1. Dwuklik **`6-aplikacja.bat`** (po instalacji z instalatora: **dictAItor** w menu Start).
+   Nie pojawi się żadne okno – w prawym dolnym rogu,
    przy zegarze, pojawi się **kółko** (jeśli go nie widać, kliknij strzałkę **^**).
    Szare = ładuje model, ciemne = gotowy.
 2. Kliknij tam, gdzie chcesz pisać (np. okno Slacka albo Claude Code).

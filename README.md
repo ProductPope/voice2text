@@ -29,8 +29,11 @@ messages follow the dictation language (English for anything but Polish); set
 
 ## Install
 
-**Windows:** download `dictaitor-setup.exe` from Releases (no Python needed), or follow
-[docs/START-WINDOWS.md](docs/START-WINDOWS.md) to run from source with double-click scripts.
+**Windows:** download `dictaitor-setup-<version>.exe` from the
+[latest release](https://github.com/ProductPope/voice2text/releases/latest) and run it — no
+Python and no administrator rights needed. Windows may warn about an unknown publisher (the
+installer isn't code-signed yet): *More info → Run anyway*. To run from source with
+double-click scripts, see [docs/START-WINDOWS.md](docs/START-WINDOWS.md) (Polish).
 
 **From source (any OS):**
 
