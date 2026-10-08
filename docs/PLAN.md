@@ -175,8 +175,9 @@ Wszystko w `%APPDATA%\dictaitor\` jako czytelne pliki (TOML/JSON), z eksportem/i
 | M2 ✅ | Aplikacja Windows MVP: tray, skrót, okienko szkicu, wpisywanie w zapamiętane okno, ustawienia, test hasła | dyktujesz do Slacka/przeglądarki na co dzień |
 | M3 ✅ | Uczenie w UI: „popraw ostatni”, ekran reguł, profile stylu, eksport/import | reguły powstają bez edytowania plików |
 | M4 ✅ | Intencje: lokalny LLM + opcjonalna chmura, strażnik zmian, budżet opóźnień | autopoprawki rozumiane poprawnie w zestawie ewaluacyjnym |
-| M5 🟡 | Wydanie 0.9 beta: instalator, podpis, CI, dokumentacja EN/PL, nazwa | instalacja na czystym Windows bez Pythona |
-| M6 | 1.0: poprawki z bety, `winget`, przewodnik dla kontrybutorów | 2–3 tygodnie stabilnego użycia przez testerów |
+| M5 ✅ | Wydanie 0.9 beta: instalator, CI, dokumentacja EN/PL, język angielski | instalacja na czystym Windows bez Pythona |
+| M6 ✅ | 1.0.0 (8.10.2026): wersja stabilna, wydanie z instalatorem, przewodnik dla kontrybutorów | wydana |
+| M7 | Po 1.0: podpis kodu (SignPath), `winget`, zmiana nazwy repozytorium, poprawki z użycia na co dzień | instalacja bez ostrzeżeń Windows |
 
 ## 11. Ryzyka
 
@@ -209,7 +210,7 @@ Brak – wszystkie decyzje do M1 podjęte.
 - **Do zrobienia przez Ciebie:** nagrać 20–30 polskich próbek (`dictaitor record`) i uruchomić
   `dictaitor eval` – to pierwszy prawdziwy pomiar na Twoim głosie i sprzęcie.
 
-## 14. Stan M2 (w trakcie – czeka na test na Windows)
+## 14. Stan M2
 
 Zrobione:
 - `dictaitor app` / `windows/6-aplikacja.bat`: ikona w zasobniku (kolor = stan), okienko
@@ -265,7 +266,7 @@ Windows Terminal z Claude Code; okno administratora; zmiana okna w trakcie).
 - **Nie przetestowane na żywo:** prawdziwe Ollama i prawdziwe Claude API (brak w środowisku
   testowym). Opóźnienie i jakość do zmierzenia `dictaitor eval` z `intent.mode` ustawionym.
 
-## 17. Stan M5 (w trakcie)
+## 17. Stan M5
 
 Zrobione:
 - `packaging/dictaitor.spec` (PyInstaller): `dictAItor.exe` (aplikacja, bez konsoli) +
@@ -279,11 +280,11 @@ Zrobione:
 - LICENSE (MIT), README po angielsku (polskie: README.pl.md), SECURITY.md (model
   prywatności), CONTRIBUTING.md, CHANGELOG.md, szablony zgłoszeń.
 
-Czeka na Ciebie:
+Po M5 (stan przy wydaniu 1.0.0):
+- Repozytorium publiczne ✅, gałąź `main` + PR z wymaganym zielonym CI ✅.
 - **Podpis kodu** (żeby Windows nie straszył „nieznany wydawca”): wniosek do SignPath.io
-  (darmowe dla open source) – wymaga Twojego konta i publicznego repozytorium.
-- **Nazwa repozytorium** (voice2text → dictaitor) i przełączenie na publiczne.
-- Test instalatora na Twoim komputerze.
+  (darmowe dla open source) – wymaga konta właściciela → M7.
+- **Nazwa repozytorium** (voice2text → dictaitor) – decyzja właściciela → M7.
 
 ## 18. Pomiar na polskiej mowie (syntezator Piper, głos „gosia”, 12 nagrań)
 
@@ -361,3 +362,18 @@ Decyzja autora: prywatne repo nie może zużywać darmowych minut GitHub Actions
 Oba workflowy mają warunek `!github.event.repository.private`: w prywatnym repo
 zadania są pomijane (0 minut), po upublicznieniu działają automatycznie przy każdej
 zmianie (w publicznych repo minuty są bezpłatne). Ręczne uruchomienie działa zawsze.
+
+## 21. Wydanie 1.0.0 (8.10.2026)
+
+Wersja oznaczona jako stabilna na prośbę właściciela projektu.
+
+- Numer: `1.0.0` w `pyproject.toml` i `dictaitor.__version__`; tag `v1.0.0` uruchamia
+  `build-windows.yml`, który buduje instalator i dołącza go do wydania na GitHubie
+  (Releases → najnowsze). Tagi z `b`/`rc` (np. `v1.1.0b1`) trafiają jako wersje wstępne.
+- Stan jakości przy wydaniu: 132 testy (Linux + Windows, Python 3.11/3.12), zero fałszywych
+  wysyłek we wszystkich pomiarach (PL i EN), instalator budowany i sprawdzany w CI.
+- Świadome ograniczenia 1.0: instalator bez podpisu cyfrowego (ostrzeżenie SmartScreen),
+  autopoprawki tylko z krokiem AI, ręczny test na wielu aplikacjach Windows (Slack,
+  przeglądarka, terminal) – zbierany od użytkowników po wydaniu.
+- Następne wydania: poprawka → `1.0.1`, nowa funkcja → `1.1.0`; każda zmiana przez PR
+  do `main` z zielonym CI, wpis w CHANGELOG, potem tag.

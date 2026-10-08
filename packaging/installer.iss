@@ -1,5 +1,5 @@
 ; Inno Setup script - per-user install, no administrator rights needed.
-; Build: iscc /DVersion=0.9.0 packaging\installer.iss  (after PyInstaller)
+; Build: iscc /DVersion=1.0.0 packaging\installer.iss  (after PyInstaller)
 
 #ifndef Version
   #define Version "0.0.0"

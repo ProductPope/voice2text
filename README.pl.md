@@ -21,7 +21,11 @@ Menu i komunikaty aplikacji są wtedy po angielsku (osobno: `app.ui_language = "
 
 ## Instalacja
 
-**Windows, bez wpisywania komend:** zobacz [docs/START-WINDOWS.md](docs/START-WINDOWS.md) · [English: README.md](README.md).
+**Windows – instalator (zalecane):** pobierz `dictaitor-setup-<wersja>.exe` z
+[najnowszego wydania](https://github.com/ProductPope/voice2text/releases/latest) i uruchom –
+bez Pythona i bez uprawnień administratora. Windows może ostrzec o nieznanym wydawcy
+(instalator nie ma jeszcze podpisu cyfrowego): *Więcej informacji → Uruchom mimo to*.
+Krok po kroku: [docs/START-WINDOWS.md](docs/START-WINDOWS.md) · [English: README.md](README.md).
 
 Ręcznie:
 
